@@ -1,0 +1,8 @@
+# Build artifacts (CMake).
+/build/
+
+# macOS.
+.DS_Store
+
+# Editor.
+*.swp
