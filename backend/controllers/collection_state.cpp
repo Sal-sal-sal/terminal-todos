@@ -88,7 +88,7 @@ void AppState::rename_selected_collection(const std::string& name) {
 
 void AppState::delete_selected_collection() {
     if (collections.size() <= 1) {
-        status_message = "At least one collection is required";
+        set_error("At least one collection is required");
         return;
     }
     const auto it = std::find_if(collections.begin(), collections.end(),

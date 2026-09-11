@@ -41,6 +41,7 @@ file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/data" TERM_TODOS_DATA_DIR)
 
 # Shared sources for every target that renders the UI.
 set(TERM_TODOS_SOURCES
+    backend/core/async_runner.cpp
     backend/models/task.cpp
     backend/models/habit.cpp
     backend/models/date.cpp
@@ -91,11 +92,17 @@ term_todos_target_common(term-todos-snapshot)
 add_executable(term-todos-ui-event-test tools/ui_event_test.cpp ${TERM_TODOS_SOURCES})
 term_todos_target_common(term-todos-ui-event-test)
 
+# --- Async, timeout, and error handling regression test -------------------
+
+add_executable(term-todos-async-test tools/async_error_test.cpp ${TERM_TODOS_SOURCES})
+term_todos_target_common(term-todos-async-test)
+
 # --- Data-layer integration test --------------------------------------------
 
 add_executable(term-todos-state-test
     tools/state_test.cpp
 
+    backend/core/async_runner.cpp
     backend/models/task.cpp
     backend/models/habit.cpp
     backend/models/date.cpp

@@ -42,7 +42,14 @@ Element due_chip(const Task& task, const std::string& today) {
         : task.due_date;
 
     const bool done = task.status == TaskStatus::Done;
-    const bool overdue = !done && serial_from_iso(task.due_date) < serial_from_iso(today);
+    bool overdue = false;
+    if (!done && !task.due_date.empty()) {
+        try {
+            overdue = serial_from_iso(task.due_date) < serial_from_iso(today);
+        } catch (...) {
+            overdue = false;
+        }
+    }
 
     std::ostringstream label;
     label << "due " << compact;

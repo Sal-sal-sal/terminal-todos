@@ -47,7 +47,14 @@ struct AppState {
     std::string collection_query;
     std::string search_query;
     std::string status_message;
+    bool is_error_status = false;
+    bool is_busy = false;
     bool show_help = false;
+
+    void set_status(const std::string& message);
+    void set_error(const std::string& error_message);
+    void set_busy(const std::string& busy_message);
+    void clear_status();
 
     void set_tab(Tab next);
     void clamp_selection();

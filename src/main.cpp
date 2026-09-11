@@ -1,5 +1,6 @@
 #include "UI/app_view.hpp"
 #include "backend/controllers/app_state.hpp"
+#include "backend/core/async_runner.hpp"
 #include "backend/store/json_store.hpp"
 
 #include <ftxui/component/screen_interactive.hpp>
@@ -87,10 +88,21 @@ int main(int argc, char** argv) {
     ftxui::Component app = make_app(state, screen);
     screen.Loop(app);
 
-    // Persist any unsaved mutations on a clean exit.
+    // Persist any unsaved mutations on a clean exit with timeout and error handling.
     if (state.dirty && !is_bundled) {
-        if (!save_state(data_path, state)) {
-            std::cerr << "term-todos: warning: could not save to " << data_path << "\n";
+        bool saved = AsyncRunner::run_with_timeout(
+            [&]() {
+                if (!save_state(data_path, state)) {
+                    throw std::runtime_error("could not write file " + data_path);
+                }
+            },
+            /*time_limit=*/std::chrono::milliseconds(3000),
+            /*on_error=*/[&](const std::string& err) {
+                std::cerr << "term-todos: error saving data: " << err << "\n";
+            }
+        );
+        if (!saved) {
+            std::cerr << "term-todos: warning: unsaved changes could not be saved to " << data_path << "\n";
         }
     }
     return 0;

@@ -136,8 +136,8 @@ void AppState::set_focused_due(const std::string& spec) {
             focused->due_date = iso_add_days(iso_today(), std::stoi(value));
         }
         dirty = true;
-    } catch (const std::invalid_argument&) {
-    } catch (const std::out_of_range&) {
+    } catch (const std::exception&) {
+        set_error("Invalid date: use YYYY-MM-DD or days offset");
     }
 }
 

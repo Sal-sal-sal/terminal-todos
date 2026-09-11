@@ -27,7 +27,7 @@ bool handle_collection_event(AppState &state, const Event &event,
     }
   } else if (event == Event::Character('d')) {
     if (state.collections.size() <= 1) {
-      state.status_message = "At least one collection is required";
+      state.set_error("At least one collection is required");
     } else if (state.selected_collection()) {
       state.modal = AppState::ModalKind::DeleteCollection;
     }

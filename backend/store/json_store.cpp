@@ -62,61 +62,77 @@ std::string csv_field(const std::string& value) {
 } // namespace
 
 bool load_state(const std::string& path, AppState& out, bool rebase) {
-    std::ifstream file(path);
-    if (!file) return false;
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-
-    nlohmann::json root;
     try {
-        root = nlohmann::json::parse(buffer.str());
-    } catch (const nlohmann::json::parse_error&) {
+        std::ifstream file(path);
+        if (!file) return false;
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+
+        nlohmann::json root;
+        try {
+            root = nlohmann::json::parse(buffer.str());
+        } catch (const nlohmann::json::parse_error&) {
+            return false;
+        }
+        if (!root.is_object()) return false;
+
+        AppState next;
+        if (!decode_state_records(root, next)) return false;
+        next.clamp_selection();
+        next.data_path = path;
+        next.dirty = false;
+        if (rebase) rebase_history_to_today(next);
+        out = std::move(next);
+        return true;
+    } catch (...) {
         return false;
     }
-    if (!root.is_object()) return false;
-
-    AppState next;
-    if (!decode_state_records(root, next)) return false;
-    next.clamp_selection();
-    next.data_path = path;
-    next.dirty = false;
-    if (rebase) rebase_history_to_today(next);
-    out = std::move(next);
-    return true;
 }
 
 bool save_state(const std::string& path, const AppState& state) {
-    const nlohmann::json root = encode_state_records(state);
-    const std::string tmp = parent_dir(path) + "/.term-todos.tmp";
-    {
-        std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-        if (!out) return false;
-        out << root.dump(2);
-        if (!out) return false;
-        out.flush();
+    try {
+        const nlohmann::json root = encode_state_records(state);
+        const std::string tmp = parent_dir(path) + "/.term-todos.tmp";
+        {
+            std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+            if (!out) return false;
+            out << root.dump(2);
+            if (!out) return false;
+            out.flush();
+        }
+        return std::rename(tmp.c_str(), path.c_str()) == 0;
+    } catch (...) {
+        return false;
     }
-    return std::rename(tmp.c_str(), path.c_str()) == 0;
 }
 
 bool export_habits_csv(const std::string& path, const AppState& state, int days) {
+    return export_habits_csv_records(path, state.habits, days);
+}
+
+bool export_habits_csv_records(const std::string& path, const std::vector<Habit>& habits, int days) {
     if (days <= 0) return false;
-    const int today = serial_from_iso(iso_today());
-    std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    if (!out) return false;
+    try {
+        const int today = serial_from_iso(iso_today());
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) return false;
 
-    out << "habit";
-    for (int i = days - 1; i >= 0; --i) out << "," << iso_from_serial(today - i);
-    out << "\n";
-
-    for (const auto& habit : state.habits) {
-        out << csv_field(habit.name);
-        for (int i = days - 1; i >= 0; --i) {
-            const std::string date = iso_from_serial(today - i);
-            out << "," << (habit.done_on(date) ? "1" : "");
-        }
+        out << "habit";
+        for (int i = days - 1; i >= 0; --i) out << "," << iso_from_serial(today - i);
         out << "\n";
+
+        for (const auto& habit : habits) {
+            out << csv_field(habit.name);
+            for (int i = days - 1; i >= 0; --i) {
+                const std::string date = iso_from_serial(today - i);
+                out << "," << (habit.done_on(date) ? "1" : "");
+            }
+            out << "\n";
+        }
+        return static_cast<bool>(out);
+    } catch (...) {
+        return false;
     }
-    return static_cast<bool>(out);
 }
 
 } // namespace term_todos

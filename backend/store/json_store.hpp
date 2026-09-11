@@ -1,6 +1,9 @@
 #pragma once
 
+#include "backend/models/habit.hpp"
+
 #include <string>
+#include <vector>
 
 namespace term_todos {
 
@@ -37,5 +40,8 @@ bool save_state(const std::string& path, const AppState& state);
 // per day over the trailing `days` days ending today, cells are "1" or empty.
 // Dates with no record read as not-done. Returns false on I/O error.
 bool export_habits_csv(const std::string& path, const AppState& state, int days);
+
+// Isolated, thread-safe CSV export taking an explicit habit record vector.
+bool export_habits_csv_records(const std::string& path, const std::vector<Habit>& habits, int days);
 
 } // namespace term_todos

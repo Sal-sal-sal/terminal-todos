@@ -3,6 +3,7 @@
 #include "UI/events/habit_events.hpp"
 #include "UI/events/task_events.hpp"
 #include "UI/overlay.hpp"
+#include "backend/core/async_runner.hpp"
 #include "backend/store/json_store.hpp"
 
 namespace term_todos {
@@ -11,7 +12,7 @@ using namespace ftxui;
 
 bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen,
                   std::string& input_buffer) {
-    if (!state.status_message.empty()) state.status_message.clear();
+    if (!state.status_message.empty() && !state.is_busy) state.clear_status();
 
     if (event == Event::Character('q')) {
         screen.Exit();
@@ -23,9 +24,25 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
     }
     if (event == Event::Character('x')) {
         const std::string path = export_path(state.data_path);
-        state.status_message = export_habits_csv(path, state, 90)
-            ? "Exported 90 days of habits to " + path
-            : "Export failed: could not write " + path;
+        state.set_busy("Exporting habits to " + path + "...");
+        auto habits = state.habits;
+        default_async_runner().run_async(
+            [path, habits = std::move(habits)]() {
+                if (!export_habits_csv_records(path, habits, 90)) {
+                    throw std::runtime_error("Could not write " + path);
+                }
+            },
+            /*time_limit=*/std::chrono::milliseconds(5000),
+            /*on_success=*/[&state, path]() {
+                state.set_status("Exported 90 days of habits to " + path);
+            },
+            /*on_error=*/[&state](const std::string& err) {
+                state.set_error("Export failed: " + err);
+            },
+            /*post_to_ui=*/[&screen](std::function<void()> fn) {
+                screen.Post(std::move(fn));
+            }
+        );
         return true;
     }
     if (event == Event::Character('1')) {
@@ -49,43 +66,49 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
 }
 
 void commit_modal(AppState& state, const std::string& buffer) {
-    switch (state.modal) {
-        case AppState::ModalKind::AddCollection:
-            state.add_collection(buffer);
-            break;
-        case AppState::ModalKind::RenameCollection:
-            state.rename_selected_collection(buffer);
-            break;
-        case AppState::ModalKind::DeleteCollection:
-            state.delete_selected_collection();
-            break;
-        case AppState::ModalKind::SearchCollections: {
-            state.collection_query = buffer;
-            const auto visible = state.visible_collections();
-            if (!visible.empty()) state.selected_collection_id = visible.front()->id;
-            break;
+    try {
+        switch (state.modal) {
+            case AppState::ModalKind::AddCollection:
+                state.add_collection(buffer);
+                break;
+            case AppState::ModalKind::RenameCollection:
+                state.rename_selected_collection(buffer);
+                break;
+            case AppState::ModalKind::DeleteCollection:
+                state.delete_selected_collection();
+                break;
+            case AppState::ModalKind::SearchCollections: {
+                state.collection_query = buffer;
+                const auto visible = state.visible_collections();
+                if (!visible.empty()) state.selected_collection_id = visible.front()->id;
+                break;
+            }
+            case AppState::ModalKind::AddHabit:
+                state.add_habit(buffer);
+                break;
+            case AppState::ModalKind::RenameHabit:
+                state.rename_focused_habit(buffer);
+                break;
+            case AppState::ModalKind::AddTask:
+                state.add_task(buffer);
+                break;
+            case AppState::ModalKind::EditTask:
+                state.rename_focused_task(buffer);
+                break;
+            case AppState::ModalKind::SetDue:
+                state.set_focused_due(buffer);
+                break;
+            case AppState::ModalKind::Search:
+                state.search_query = buffer;
+                state.clamp_selection();
+                break;
+            case AppState::ModalKind::None:
+                break;
         }
-        case AppState::ModalKind::AddHabit:
-            state.add_habit(buffer);
-            break;
-        case AppState::ModalKind::RenameHabit:
-            state.rename_focused_habit(buffer);
-            break;
-        case AppState::ModalKind::AddTask:
-            state.add_task(buffer);
-            break;
-        case AppState::ModalKind::EditTask:
-            state.rename_focused_task(buffer);
-            break;
-        case AppState::ModalKind::SetDue:
-            state.set_focused_due(buffer);
-            break;
-        case AppState::ModalKind::Search:
-            state.search_query = buffer;
-            state.clamp_selection();
-            break;
-        case AppState::ModalKind::None:
-            break;
+    } catch (const std::exception& ex) {
+        state.set_error(std::string("Action failed: ") + ex.what());
+    } catch (...) {
+        state.set_error("Action failed due to an unknown error");
     }
     state.modal = AppState::ModalKind::None;
 }

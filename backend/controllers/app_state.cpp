@@ -6,6 +6,30 @@
 
 namespace term_todos {
 
+void AppState::set_status(const std::string& message) {
+    status_message = message;
+    is_error_status = false;
+    is_busy = false;
+}
+
+void AppState::set_error(const std::string& error_message) {
+    status_message = error_message;
+    is_error_status = true;
+    is_busy = false;
+}
+
+void AppState::set_busy(const std::string& busy_message) {
+    status_message = busy_message;
+    is_busy = true;
+    is_error_status = false;
+}
+
+void AppState::clear_status() {
+    status_message.clear();
+    is_error_status = false;
+    is_busy = false;
+}
+
 void AppState::set_tab(Tab next) {
     tab = next;
     clamp_selection();
