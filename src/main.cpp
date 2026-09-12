@@ -2,6 +2,7 @@
 #include "backend/controllers/app_state.hpp"
 #include "backend/core/async_runner.hpp"
 #include "backend/store/json_store.hpp"
+#include "src/cli.hpp"
 
 #include <ftxui/component/screen_interactive.hpp>
 
@@ -26,12 +27,12 @@ std::string bundled_mock_path() {
 }
 
 // Resolves the persistent user data file. Priority:
-//   argv override (testing) -> $TERM_TODOS_DATA -> $XDG_DATA_HOME ->
+//   CLI override (testing) -> $TERM_TODOS_DATA -> $XDG_DATA_HOME ->
 //   ~/.local/share/term-todos/data.json.
 // Returns an empty path if no writable home could be found (in which case the
 // app falls back to the read-only bundled mock and will not persist).
-std::string resolve_data_path(int argc, char** argv) {
-    if (argc > 1) return argv[1];
+std::string resolve_data_path(const std::string& override_path) {
+    if (!override_path.empty()) return override_path;
 
     if (const char* env = std::getenv("TERM_TODOS_DATA")) {
         return env;
@@ -71,7 +72,18 @@ void seed_if_missing(const std::string& data_path) {
 int main(int argc, char** argv) {
     using namespace term_todos;
 
-    const std::string data_path = resolve_data_path(argc, argv);
+    const CliOptions options = parse_cli(argc, argv);
+    if (!options.error.empty()) {
+        std::cerr << "todo: " << options.error << "\n\n";
+        print_cli_help(std::cerr);
+        return 2;
+    }
+    if (options.action == CliAction::Help) {
+        print_cli_help(std::cout);
+        return 0;
+    }
+
+    const std::string data_path = resolve_data_path(options.data_path);
     const bool is_bundled = (data_path == bundled_mock_path());
 
     // For the bundled fallback there is nothing to seed and no persistence.
@@ -82,6 +94,11 @@ int main(int argc, char** argv) {
         std::cerr << "term-todos: could not load data from " << data_path << "\n";
         std::cerr << "Pass a JSON file path as the first argument.\n";
         return 1;
+    }
+
+    if (options.action == CliAction::List) {
+        print_task_list(std::cout, state);
+        return 0;
     }
 
     ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();

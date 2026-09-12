@@ -79,8 +79,17 @@ function(term_todos_target_common name)
     endif()
 endfunction()
 
-add_executable(term-todos src/main.cpp ${TERM_TODOS_SOURCES})
+add_executable(term-todos src/main.cpp src/cli.cpp ${TERM_TODOS_SOURCES})
 term_todos_target_common(term-todos)
+
+# --- Command-line parser and list-output regression test --------------------
+
+add_executable(term-todos-cli-test
+    tools/cli_test.cpp
+    src/cli.cpp
+    backend/models/task.cpp
+)
+term_todos_target_common(term-todos-cli-test)
 
 # --- Non-interactive render harness (pixel-perfect UI review) -----------------
 

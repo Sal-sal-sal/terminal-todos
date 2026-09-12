@@ -47,6 +47,16 @@ Four targets are produced:
 On first run the app seeds its data file from the bundled mock
 (`assets/data/mock.json`) so there is something to look at.
 
+The installed `todo` command also supports non-interactive help and task listing:
+
+```sh
+todo help
+todo -h
+todo --help
+todo list
+todo list /path/to/data.json
+```
+
 ## Habit heatmap shell splash
 
 `tools/term-todo-splash` prints a compact, read-only habit summary and a 12-week aggregate heatmap above the normal shell prompt.
