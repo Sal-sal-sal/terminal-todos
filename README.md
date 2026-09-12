@@ -47,6 +47,29 @@ Four targets are produced:
 On first run the app seeds its data file from the bundled mock
 (`assets/data/mock.json`) so there is something to look at.
 
+## Habit heatmap shell splash
+
+`tools/term-todo-splash` prints a compact, read-only habit summary and a 12-week aggregate heatmap above the normal shell prompt.
+It reads the same data file as `term-todos` and does not start the interactive interface or modify habit data.
+
+Install the command and enable the splash for new Zsh terminals:
+
+```sh
+install -m 0755 tools/term-todo-splash ~/.local/bin/term-todo-splash
+term-todo-splash install
+```
+
+Manage it later with:
+
+```sh
+term-todo-splash show
+term-todo-splash status
+term-todo-splash uninstall
+term-todo-splash install
+```
+
+The managed Zsh block is inserted before `epic-mode`, so the habit heatmap replaces its launch art while leaving the existing prompt and shell behavior unchanged.
+
 ### Where data lives
 
 Resolved in this order:

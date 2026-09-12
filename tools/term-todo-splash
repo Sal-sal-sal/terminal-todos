@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Print and manage the term-todos habit heatmap shell splash."""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import re
+import shutil
+import stat
+import sys
+import tempfile
+from datetime import date, timedelta
+from pathlib import Path
+
+START = "# >>> term-todo habit splash >>>"
+END = "# <<< term-todo habit splash <<<"
+EPIC_ANCHOR = "# === epic-mode: cosmic terminal experience"
+PALETTE = [(34, 37, 46), (14, 68, 41), (0, 109, 50), (38, 166, 65), (57, 211, 83)]
+PLAIN_CELLS = ["··", "░░", "▒▒", "▓▓", "██"]
+WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
+
+
+def data_path() -> Path:
+    if value := os.environ.get("TERM_TODOS_DATA"):
+        return Path(value).expanduser()
+    base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    return base / "term-todos" / "data.json"
+
+def load_habits() -> list[dict]:
+    path = data_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"не удалось прочитать {path}: {error}") from error
+    habits = payload.get("habits", [])
+    if not isinstance(habits, list):
+        raise RuntimeError(f"неверный формат habits в {path}")
+    return [habit for habit in habits if isinstance(habit, dict)]
+
+def is_done(habit: dict, day: date) -> bool:
+    history = habit.get("history", {})
+    return isinstance(history, dict) and history.get(day.isoformat()) is True
+
+def streak(habit: dict, today: date) -> int:
+    cursor = today if is_done(habit, today) else today - timedelta(days=1)
+    count = 0
+    while is_done(habit, cursor):
+        count += 1
+        cursor -= timedelta(days=1)
+    return count
+
+def color_enabled() -> bool:
+    requested = os.environ.get("TERM_TODO_SPLASH_COLOR", "auto")
+    if requested == "always":
+        return True
+    if requested == "never" or "NO_COLOR" in os.environ:
+        return False
+    return sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
+
+def paint(text: str, code: str, enabled: bool) -> str:
+    return f"\033[{code}m{text}\033[0m" if enabled else text
+
+
+def cell(level: int | None, enabled: bool) -> str:
+    if level is None:
+        return "  "
+    if not enabled:
+        return PLAIN_CELLS[level]
+    red, green, blue = PALETTE[level]
+    return f"\033[48;2;{red};{green};{blue}m  \033[0m"
+
+
+def week_window(weeks: int, today: date) -> list[date]:
+    current_monday = today - timedelta(days=today.weekday())
+    first_monday = current_monday - timedelta(weeks=weeks - 1)
+    return [first_monday + timedelta(weeks=index) for index in range(weeks)]
+
+def month_header(starts: list[date]) -> str:
+    labels = [" "] * (len(starts) * 2)
+    previous = -1
+    last_label = -4
+    for index, monday in enumerate(starts):
+        middle = monday + timedelta(days=3)
+        if middle.month != previous and index - last_label >= 2:
+            position = index * 2
+            label = middle.strftime("%b")[: len(labels) - position]
+            labels[position : position + len(label)] = label
+            last_label = index
+        previous = middle.month
+    return "    " + "".join(labels).rstrip()
+
+def aggregate_level(habits: list[dict], day: date, today: date) -> int | None:
+    if day > today:
+        return None
+    completed = sum(is_done(habit, day) for habit in habits)
+    if completed == 0 or not habits:
+        return 0
+    return min(4, math.ceil(completed * 4 / len(habits)))
+
+def render(weeks: int = 12) -> str:
+    habits = load_habits()
+    today = date.today()
+    enabled = color_enabled()
+    done_today = sum(is_done(habit, today) for habit in habits)
+    best = max((streak(habit, today) for habit in habits), default=0)
+    title = paint("HABITS", "1;36", enabled)
+    summary = paint(f"{done_today}/{len(habits)} today", "90", enabled)
+    best_text = paint(f"best streak: {best}d", "33", enabled)
+    lines = [f"  {title}  {summary}   {best_text}"]
+    starts = week_window(weeks, today)
+    lines.append(month_header(starts))
+    for offset, weekday in enumerate(WEEKDAYS):
+        cells = "".join(
+            cell(aggregate_level(habits, monday + timedelta(days=offset), today), enabled)
+            for monday in starts
+        )
+        lines.append(f"{weekday:<3} {cells}")
+    legend = " ".join(cell(level, enabled) for level in range(5))
+    lines.append(f"    {paint('Less', '90', enabled)} {legend} {paint('More', '90', enabled)}")
+    width = shutil.get_terminal_size((80, 24)).columns
+    for habit in habits:
+        done = is_done(habit, today)
+        mark = paint("●" if done else "○", "32" if done else "90", enabled)
+        name = str(habit.get("name", "Unnamed habit"))
+        name = name[: max(8, width - 15)]
+        run = paint(f"{streak(habit, today)}d", "33", enabled)
+        lines.append(f"  {mark} {name}  {run}")
+    return "\n".join(lines)
+
+
+def startup_block() -> str:
+    return f'''{START}
+if [[ -o interactive && -t 1 && "$TERM_PROGRAM" != "vscode" && \\
+      -x "$HOME/.local/bin/term-todo-splash" ]]; then
+  export EPIC_SHOWN=1
+  command "$HOME/.local/bin/term-todo-splash" show
+fi
+{END}'''
+
+def without_block(text: str) -> str:
+    pattern = rf"\n?{re.escape(START)}.*?{re.escape(END)}\n?"
+    return re.sub(pattern, "\n", text, flags=re.DOTALL)
+
+def atomic_write(path: Path, text: str) -> None:
+    mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o644
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as file:
+        file.write(text)
+        temporary = Path(file.name)
+    temporary.chmod(mode)
+    os.replace(temporary, path)
+
+def install() -> None:
+    path = Path.home() / ".zshrc"
+    original = path.read_text(encoding="utf-8") if path.exists() else ""
+    cleaned = without_block(original).rstrip() + "\n"
+    block = startup_block() + "\n"
+    if EPIC_ANCHOR in cleaned:
+        updated = cleaned.replace(EPIC_ANCHOR, block + "\n" + EPIC_ANCHOR, 1)
+    else:
+        updated = cleaned + "\n" + block
+    atomic_write(path, updated)
+    print("Заставка привычек установлена. Она появится в новом терминале.")
+
+def uninstall() -> None:
+    path = Path.home() / ".zshrc"
+    if not path.exists() or START not in path.read_text(encoding="utf-8"):
+        print("Заставка привычек уже отключена.")
+        return
+    updated = without_block(path.read_text(encoding="utf-8")).rstrip() + "\n"
+    atomic_write(path, updated)
+    print("Заставка привычек отключена. Команда оставлена для повторной установки.")
+
+def main() -> int:
+    command = sys.argv[1] if len(sys.argv) > 1 else "show"
+    if command == "show":
+        columns = shutil.get_terminal_size((80, 24)).columns
+        weeks = max(4, min(12, (columns - 4) // 2))
+        try:
+            print(render(weeks))
+        except RuntimeError as error:
+            print(f"term-todo-splash: {error}", file=sys.stderr)
+        return 0
+    if command == "install":
+        install()
+        return 0
+    if command == "uninstall":
+        uninstall()
+        return 0
+    if command == "status":
+        text = (Path.home() / ".zshrc").read_text(encoding="utf-8")
+        print("installed" if START in text else "not installed")
+        return 0
+    print("usage: term-todo-splash [show|install|uninstall|status]", file=sys.stderr)
+    return 2
+
+if __name__ == "__main__":
+    raise SystemExit(main())
