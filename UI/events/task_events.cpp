@@ -45,8 +45,7 @@ bool handle_board_event(AppState &state, const Event &event,
                         std::string &input) {
   if (event == Event::Escape || event == Event::Character('b')) {
     state.back_to_collections();
-
-  } else if (event == Event::Escape || event == Event::Character('-')) {
+  } else if (event == Event::Character('-')) {
     state.back_to_collections();
   } else if (event == Event::ArrowUp || event == Event::Character('k')) {
     state.navigate_card(-1);

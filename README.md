@@ -121,7 +121,7 @@ Collection board:
 
 | Key     | Action                       |
 |---------|------------------------------|
-| `h`/`l` | move focused card left/right |
+| `h`/`l` | move card, or cross an empty column |
 | `j`/`k` | select card up/down          |
 | `n`     | new task                     |
 | `e`     | edit title                   |

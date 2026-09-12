@@ -29,7 +29,10 @@ const Task* AppState::focused_task() const {
 void AppState::move_task_left() {
     if (selected_column <= 0) return;
     const Task* focused = focused_task();
-    if (!focused) return;
+    if (!focused) {
+        navigate_column(-1);
+        return;
+    }
     const int id = focused->id;
     for (auto& task : tasks) {
         if (task.id == id) {
@@ -44,7 +47,10 @@ void AppState::move_task_left() {
 void AppState::move_task_right() {
     if (selected_column >= 2) return;
     const Task* focused = focused_task();
-    if (!focused) return;
+    if (!focused) {
+        navigate_column(1);
+        return;
+    }
     const int id = focused->id;
     for (auto& task : tasks) {
         if (task.id == id) {

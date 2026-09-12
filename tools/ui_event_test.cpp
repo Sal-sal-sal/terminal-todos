@@ -22,9 +22,38 @@ void type(ftxui::Component& app, const std::string& text) {
     for (char c : text) require(app->OnEvent(Event::Character(c)), "typing failed");
 }
 
+void test_empty_column_navigation() {
+    AppState state;
+    state.collections.push_back({1, "Inbox"});
+    state.selected_collection_id = 1;
+    state.task_view = AppState::TaskView::Board;
+    state.selected_column = 0;
+    Task task;
+    task.id = 1;
+    task.title = "Already in progress";
+    task.status = TaskStatus::InProgress;
+    task.collection_id = 1;
+    state.tasks.push_back(task);
+
+    auto screen = ftxui::ScreenInteractive::FixedSize(80, 24);
+    auto app = make_app(state, screen);
+    require(app->OnEvent(Event::Character('l')), "right key was not handled");
+    require(state.selected_column == 1, "could not leave empty Todo column");
+    require(state.tasks.front().status == TaskStatus::InProgress,
+            "navigation moved a task from another column");
+    require(!state.dirty, "empty-column navigation marked state dirty");
+
+    require(app->OnEvent(Event::Character('l')), "task move key was not handled");
+    require(state.selected_column == 2, "focus did not follow moved task");
+    require(state.tasks.front().status == TaskStatus::Done,
+            "focused task did not move to Done");
+}
+
 } // namespace
 
 int main() {
+    test_empty_column_navigation();
+
     AppState state;
     state.collections.push_back({1, "Inbox"});
     state.selected_collection_id = 1;
