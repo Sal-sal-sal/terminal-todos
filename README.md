@@ -78,7 +78,9 @@ term-todo-splash uninstall
 term-todo-splash install
 ```
 
-The managed Zsh block is inserted before `epic-mode`, so the habit heatmap replaces its launch art while leaving the existing prompt and shell behavior unchanged.
+The managed Zsh block is independent and appended without changing existing startup art, prompts, or shell behavior.
+This lets the habit heatmap coexist with `epic-mode` or another terminal art tool.
+Running `term-todo-splash uninstall` removes only the habit block, while `term-todo-splash install` restores it without changing the selected art.
 
 ### Where data lives
 

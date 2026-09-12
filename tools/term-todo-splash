@@ -16,7 +16,6 @@ from pathlib import Path
 
 START = "# >>> term-todo habit splash >>>"
 END = "# <<< term-todo habit splash <<<"
-EPIC_ANCHOR = "# === epic-mode: cosmic terminal experience"
 PALETTE = [(34, 37, 46), (14, 68, 41), (0, 109, 50), (38, 166, 65), (57, 211, 83)]
 PLAIN_CELLS = ["··", "░░", "▒▒", "▓▓", "██"]
 WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
@@ -132,9 +131,10 @@ def render(weeks: int = 12) -> str:
 
 def startup_block() -> str:
     return f'''{START}
-if [[ -o interactive && -t 1 && "$TERM_PROGRAM" != "vscode" && \\
+if [[ -o interactive && -t 1 && -z "${{TERM_TODO_SPLASH_SHOWN:-}}" && \\
+      "$TERM_PROGRAM" != "vscode" && \\
       -x "$HOME/.local/bin/term-todo-splash" ]]; then
-  export EPIC_SHOWN=1
+  export TERM_TODO_SPLASH_SHOWN=1
   command "$HOME/.local/bin/term-todo-splash" show
 fi
 {END}'''
@@ -154,12 +154,8 @@ def atomic_write(path: Path, text: str) -> None:
 def install() -> None:
     path = Path.home() / ".zshrc"
     original = path.read_text(encoding="utf-8") if path.exists() else ""
-    cleaned = without_block(original).rstrip() + "\n"
-    block = startup_block() + "\n"
-    if EPIC_ANCHOR in cleaned:
-        updated = cleaned.replace(EPIC_ANCHOR, block + "\n" + EPIC_ANCHOR, 1)
-    else:
-        updated = cleaned + "\n" + block
+    cleaned = without_block(original).rstrip()
+    updated = cleaned + "\n\n" + startup_block() + "\n"
     atomic_write(path, updated)
     print("Заставка привычек установлена. Она появится в новом терминале.")
 
