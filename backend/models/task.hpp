@@ -24,6 +24,7 @@ enum class Priority {
 struct Task {
     int id = 0;
     std::string title;
+    std::string description;
     TaskStatus status = TaskStatus::Todo;
     std::vector<std::string> labels;
     Priority priority = Priority::None;

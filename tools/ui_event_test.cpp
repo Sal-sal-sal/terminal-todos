@@ -73,6 +73,13 @@ int main() {
     require(app->OnEvent(Event::Return), "edit save was not handled");
     require(state.modal == AppState::ModalKind::None, "edit modal did not close");
 
+    require(app->OnEvent(Event::Character('D')), "description key was not handled");
+    require(state.modal == AppState::ModalKind::EditDescription,
+            "description modal did not open");
+    type(app, " details");
+    require(app->OnEvent(Event::Return), "description save was not handled");
+    require(state.tasks.front().description == " details", "description was not saved");
+
     require(app->OnEvent(Event::Character('f')), "find key was not handled");
     require(state.modal == AppState::ModalKind::Search, "find modal did not open");
     app->Render();

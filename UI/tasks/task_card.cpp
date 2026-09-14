@@ -94,6 +94,9 @@ Element render_task_card(const Task& task, bool focused) {
         chips.push_back(text(" "));
     }
     Elements column = { title_line };
+    if (!task.description.empty()) {
+        column.push_back(text("    " + task.description) | color(theme::dim()));
+    }
     if (!chips.empty()) {
         chips.pop_back(); // trailing gap
         Element due = due_chip(task, iso_today());

@@ -57,6 +57,7 @@ void print_task(std::ostream& out, const Task& task) {
         out << "]";
     }
     out << "\n";
+    if (!task.description.empty()) out << "      " << task.description << "\n";
 }
 
 } // namespace

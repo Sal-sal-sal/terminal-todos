@@ -125,6 +125,7 @@ Collection board:
 | `j`/`k` | select card up/down          |
 | `n`     | new task                     |
 | `e`     | edit title                   |
+| `D`     | edit or clear description    |
 | `d`     | delete                       |
 | `[`/`]` | cycle priority               |
 | `u`     | set due date                 |
@@ -148,13 +149,14 @@ Search matches task titles, labels, and collection names case-insensitively.
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "collections": [
     { "id": 1, "name": "Inbox" }
   ],
   "tasks": [
     { "id": 12, "collection_id": 1,
       "title": "Fix login redirect loop",
+      "description": "Reproduce with an expired session",
       "status": "todo", "labels": ["bug", "auth"],
       "priority": "high", "due": "2026-07-22" }
   ],
@@ -166,7 +168,7 @@ Search matches task titles, labels, and collection names case-insensitively.
 ```
 
 `status` is `todo` / `in_progress` / `done`, and `priority` is `none` / `low` / `medium` / `high`.
-Legacy files without `collections` load into an automatic `Inbox` and are written as schema version 2 after the next normal save.
+Legacy files without `collections` load into an automatic `Inbox` and are written as the current schema version after the next normal save.
 Habit history only needs to record days that were completed.
 
 ## Project layout

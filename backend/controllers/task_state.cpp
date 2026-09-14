@@ -111,6 +111,13 @@ void AppState::rename_focused_task(const std::string& title) {
     dirty = true;
 }
 
+void AppState::set_focused_description(const std::string& description) {
+    Task* focused = const_cast<Task*>(focused_task());
+    if (!focused) return;
+    focused->description = description;
+    dirty = true;
+}
+
 void AppState::cycle_focused_priority() {
     Task* focused = const_cast<Task*>(focused_task());
     if (!focused) return;

@@ -36,6 +36,7 @@ struct AppState {
         SearchCollections,
         AddTask,
         EditTask,
+        EditDescription,
         SetDue,
         Search,
         AddHabit,
@@ -76,6 +77,7 @@ struct AppState {
     void add_task(const std::string& title);
     void delete_focused_task();
     void rename_focused_task(const std::string& title);
+    void set_focused_description(const std::string& description);
     void cycle_focused_priority();
     void set_focused_due(const std::string& spec);
     std::vector<const Task*> column_tasks(int column) const;

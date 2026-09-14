@@ -95,6 +95,9 @@ void commit_modal(AppState& state, const std::string& buffer) {
             case AppState::ModalKind::EditTask:
                 state.rename_focused_task(buffer);
                 break;
+            case AppState::ModalKind::EditDescription:
+                state.set_focused_description(buffer);
+                break;
             case AppState::ModalKind::SetDue:
                 state.set_focused_due(buffer);
                 break;

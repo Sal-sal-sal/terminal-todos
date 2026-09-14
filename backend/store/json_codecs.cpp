@@ -56,6 +56,7 @@ void decode_tasks(const nlohmann::json& root, AppState& state) {
         Task task;
         task.id = item.value("id", 0);
         task.title = item.value("title", "");
+        task.description = item.value("description", "");
         task.status = status_from_string(item.value("status", "todo"));
         task.priority = priority_from_string(item.value("priority", "none"));
         task.due_date = item.value("due", "");
@@ -92,6 +93,7 @@ nlohmann::json encode_task(const Task& task) {
         {"id", task.id},
         {"collection_id", task.collection_id},
         {"title", task.title},
+        {"description", task.description},
         {"status", status_to_string(task.status)},
         {"labels", task.labels},
         {"priority", priority_to_string(task.priority)},
@@ -123,7 +125,7 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
 
 nlohmann::json encode_state_records(const AppState& state) {
     nlohmann::json root = {
-        {"schema_version", 2},
+        {"schema_version", 3},
         {"collections", nlohmann::json::array()},
         {"tasks", nlohmann::json::array()},
         {"habits", nlohmann::json::array()},

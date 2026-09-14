@@ -65,6 +65,13 @@ bool handle_board_event(AppState &state, const Event &event,
       state.edit_target_id = focused->id;
       state.modal = AppState::ModalKind::EditTask;
     }
+  } else if (event == Event::Character('D')) {
+    const Task *focused = state.focused_task();
+    if (focused) {
+      input = focused->description;
+      state.edit_target_id = focused->id;
+      state.modal = AppState::ModalKind::EditDescription;
+    }
   } else if (event == Event::Character('d')) {
     state.delete_focused_task();
   } else if (event == Event::Character('[') || event == Event::Character(']')) {
