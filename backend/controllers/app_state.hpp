@@ -26,6 +26,7 @@ struct AppState {
     int selected_collection_id = 0;
     int selected_column = 0;
     int selected_card = 0;
+    int selected_sub_todo = 0;
     int selected_habit = 0;
 
     enum class ModalKind {
@@ -37,6 +38,7 @@ struct AppState {
         AddTask,
         EditTask,
         EditDescription,
+        AddSubTodo,
         SetDue,
         Search,
         AddHabit,
@@ -78,6 +80,10 @@ struct AppState {
     void delete_focused_task();
     void rename_focused_task(const std::string& title);
     void set_focused_description(const std::string& description);
+    void navigate_sub_todo(int delta);
+    void add_sub_todo(const std::string& title);
+    void toggle_selected_sub_todo();
+    void delete_selected_sub_todo();
     void cycle_focused_priority();
     void set_focused_due(const std::string& spec);
     std::vector<const Task*> column_tasks(int column) const;

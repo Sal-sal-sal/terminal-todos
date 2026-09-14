@@ -58,6 +58,9 @@ void print_task(std::ostream& out, const Task& task) {
     }
     out << "\n";
     if (!task.description.empty()) out << "      " << task.description << "\n";
+    for (const auto& child : task.sub_todos) {
+        out << "      [" << (child.done ? "x" : " ") << "] " << child.title << "\n";
+    }
 }
 
 } // namespace

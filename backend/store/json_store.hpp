@@ -15,13 +15,14 @@ struct AppState;
 // (used when seeding from the bundled mock so the heatmap looks live on first
 // run). Pass false for real user data.
 //
-// Canonical schema version 3:
+// Canonical schema version 4:
 // {
-//   "schema_version": 3,
+//   "schema_version": 4,
 //   "collections": [{ "id": 1, "name": "Inbox" }],
 //   "tasks": [
 //     { "id": 12, "collection_id": 1, "title": "Fix login",
 //       "description": "Reproduce with an expired session",
+//       "sub_todos": [{ "title": "Add regression test", "done": false }],
 //       "status": "todo"|"in_progress"|"done", "labels": ["bug","ui"],
 //       "priority": "none"|"low"|"medium"|"high", "due": "2026-07-20" }
 //   ],

@@ -80,6 +80,13 @@ int main() {
     require(app->OnEvent(Event::Return), "description save was not handled");
     require(state.tasks.front().description == " details", "description was not saved");
 
+    require(app->OnEvent(Event::Character('s')), "sub-todo key was not handled");
+    type(app, "First step");
+    require(app->OnEvent(Event::Return), "sub-todo save was not handled");
+    require(state.tasks.front().sub_todos.size() == 1, "sub-todo was not created");
+    require(app->OnEvent(Event::Character(' ')), "sub-todo toggle was not handled");
+    require(state.tasks.front().sub_todos.front().done, "sub-todo was not completed");
+
     require(app->OnEvent(Event::Character('f')), "find key was not handled");
     require(state.modal == AppState::ModalKind::Search, "find modal did not open");
     app->Render();

@@ -8,6 +8,6 @@ namespace term_todos {
 
 // Renders a single Kanban card. `focused` controls the highlight and cursor
 // marker so the board can indicate the selected card.
-ftxui::Element render_task_card(const Task& task, bool focused);
+ftxui::Element render_task_card(const Task& task, bool focused, int selected_sub_todo);
 
 } // namespace term_todos

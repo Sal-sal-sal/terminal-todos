@@ -67,6 +67,13 @@ void decode_tasks(const nlohmann::json& root, AppState& state) {
                 if (label.is_string()) task.labels.push_back(label.get<std::string>());
             }
         }
+        if (item.contains("sub_todos") && item["sub_todos"].is_array()) {
+            for (const auto& child : item["sub_todos"]) {
+                if (!child.is_object()) continue;
+                const std::string title = child.value("title", "");
+                if (!title.empty()) task.sub_todos.push_back({title, child.value("done", false)});
+            }
+        }
         state.tasks.push_back(std::move(task));
     }
 }
@@ -98,6 +105,10 @@ nlohmann::json encode_task(const Task& task) {
         {"labels", task.labels},
         {"priority", priority_to_string(task.priority)},
     };
+    item["sub_todos"] = nlohmann::json::array();
+    for (const auto& child : task.sub_todos) {
+        item["sub_todos"].push_back({{"title", child.title}, {"done", child.done}});
+    }
     if (!task.due_date.empty()) item["due"] = task.due_date;
     return item;
 }
@@ -125,7 +136,7 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
 
 nlohmann::json encode_state_records(const AppState& state) {
     nlohmann::json root = {
-        {"schema_version", 3},
+        {"schema_version", 4},
         {"collections", nlohmann::json::array()},
         {"tasks", nlohmann::json::array()},
         {"habits", nlohmann::json::array()},

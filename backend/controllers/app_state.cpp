@@ -52,6 +52,11 @@ void AppState::clamp_selection() {
     selected_card = cards == 0
         ? 0
         : state_helpers::clamp_int(selected_card, 0, cards - 1);
+    const Task* task = focused_task();
+    selected_sub_todo = !task || task->sub_todos.empty()
+        ? 0
+        : state_helpers::clamp_int(selected_sub_todo, 0,
+                                   static_cast<int>(task->sub_todos.size()) - 1);
     selected_habit = habits.empty()
         ? 0
         : state_helpers::clamp_int(selected_habit, 0,

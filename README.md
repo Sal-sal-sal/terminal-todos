@@ -127,6 +127,10 @@ Collection board:
 | `e`     | edit title                   |
 | `D`     | edit or clear description    |
 | `d`     | delete                       |
+| `s`     | create sub-todo              |
+| `J`/`K` | select sub-todo              |
+| `space` | toggle selected sub-todo     |
+| `X`     | delete selected sub-todo     |
 | `[`/`]` | cycle priority               |
 | `u`     | set due date                 |
 | `f`     | search / filter              |
@@ -149,7 +153,7 @@ Search matches task titles, labels, and collection names case-insensitively.
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "collections": [
     { "id": 1, "name": "Inbox" }
   ],
@@ -157,6 +161,9 @@ Search matches task titles, labels, and collection names case-insensitively.
     { "id": 12, "collection_id": 1,
       "title": "Fix login redirect loop",
       "description": "Reproduce with an expired session",
+      "sub_todos": [
+        { "title": "Add regression test", "done": false }
+      ],
       "status": "todo", "labels": ["bug", "auth"],
       "priority": "high", "due": "2026-07-22" }
   ],

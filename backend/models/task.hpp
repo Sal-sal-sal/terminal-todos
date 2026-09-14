@@ -21,6 +21,11 @@ enum class Priority {
     High,
 };
 
+struct SubTodo {
+    std::string title;
+    bool done = false;
+};
+
 struct Task {
     int id = 0;
     std::string title;
@@ -30,6 +35,7 @@ struct Task {
     Priority priority = Priority::None;
     std::string due_date; // optional ISO "YYYY-MM-DD"; empty means no deadline
     int collection_id = 1;
+    std::vector<SubTodo> sub_todos;
 
     // Maps a TaskStatus to the index of its Kanban column (0..2).
     static int column_index(TaskStatus status);

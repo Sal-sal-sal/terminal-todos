@@ -51,6 +51,10 @@ bool handle_board_event(AppState &state, const Event &event,
     state.navigate_card(-1);
   } else if (event == Event::ArrowDown || event == Event::Character('j')) {
     state.navigate_card(1);
+  } else if (event == Event::Character('K')) {
+    state.navigate_sub_todo(-1);
+  } else if (event == Event::Character('J')) {
+    state.navigate_sub_todo(1);
   } else if (event == Event::ArrowLeft || event == Event::Character('h')) {
     state.move_task_left();
   } else if (event == Event::ArrowRight || event == Event::Character('l')) {
@@ -58,6 +62,15 @@ bool handle_board_event(AppState &state, const Event &event,
   } else if (event == Event::Character('n')) {
     input.clear();
     state.modal = AppState::ModalKind::AddTask;
+  } else if (event == Event::Character('s')) {
+    if (state.focused_task()) {
+      input.clear();
+      state.modal = AppState::ModalKind::AddSubTodo;
+    }
+  } else if (event == Event::Character(' ')) {
+    state.toggle_selected_sub_todo();
+  } else if (event == Event::Character('X')) {
+    state.delete_selected_sub_todo();
   } else if (event == Event::Character('e')) {
     const Task *focused = state.focused_task();
     if (focused) {

@@ -57,8 +57,9 @@ void test_output() {
     AppState state;
     state.collections = {{1, "Inbox"}};
     Task active{1, "Ship CLI", "Document commands", TaskStatus::Todo,
-                {"cli"}, Priority::High, "2026-09-14", 1};
-    Task done{2, "Write test", "", TaskStatus::Done, {}, Priority::None, "", 1};
+                {"cli"}, Priority::High, "2026-09-14", 1, {}};
+    active.sub_todos = {{"Add parser", true}, {"Add output", false}};
+    Task done{2, "Write test", "", TaskStatus::Done, {}, Priority::None, "", 1, {}};
     state.tasks = {active, done};
     std::ostringstream list;
     term_todos::print_task_list(list, state);
@@ -68,6 +69,10 @@ void test_output() {
           "todo row metadata");
     check(list.str().find("Document commands") != std::string::npos,
           "task description");
+    check(list.str().find("[x] Add parser") != std::string::npos,
+          "completed sub-todo");
+    check(list.str().find("[ ] Add output") != std::string::npos,
+          "open sub-todo");
     check(list.str().find("[x] #2 Write test") != std::string::npos,
           "done row");
 }

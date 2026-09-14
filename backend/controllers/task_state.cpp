@@ -70,11 +70,13 @@ void AppState::navigate_card(int delta) {
     }
     selected_card = (selected_card + delta) % count;
     if (selected_card < 0) selected_card += count;
+    selected_sub_todo = 0;
 }
 
 void AppState::navigate_column(int delta) {
     selected_column = state_helpers::clamp_int(selected_column + delta, 0, 2);
     selected_card = 0;
+    selected_sub_todo = 0;
 }
 
 void AppState::add_task(const std::string& title) {
@@ -87,6 +89,7 @@ void AppState::add_task(const std::string& title) {
     tasks.push_back(std::move(task));
     selected_column = 0;
     selected_card = static_cast<int>(column_tasks(0).size()) - 1;
+    selected_sub_todo = 0;
     dirty = true;
 }
 

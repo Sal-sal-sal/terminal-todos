@@ -64,6 +64,8 @@ int main() {
     s.open_selected_collection();
     s.add_task("Test task A");
     s.set_focused_description("Description A");
+    s.add_sub_todo("Sub-task A");
+    s.toggle_selected_sub_todo();
     s.add_habit("Test habit A");
     s.selected_column = 0; // Todo column
     s.selected_card = 0;
@@ -92,6 +94,10 @@ int main() {
     check(static_cast<int>(r.habits.size()) == habits_before + 1, "habit count +1");
     check(r.tasks.back().title == "Test task A", "added task title round-tripped");
     check(r.tasks.back().description == "Description A", "description round-tripped");
+    check(r.tasks.back().sub_todos.size() == 1
+              && r.tasks.back().sub_todos.front().title == "Sub-task A"
+              && r.tasks.back().sub_todos.front().done,
+          "sub-todo round-tripped");
     check(r.tasks.back().collection_id == work_id, "task collection round-tripped");
     check(r.habits.back().name == "Test habit A", "added habit name round-tripped");
 

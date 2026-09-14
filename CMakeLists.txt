@@ -48,6 +48,7 @@ set(TERM_TODOS_SOURCES
     backend/controllers/app_state.cpp
     backend/controllers/collection_state.cpp
     backend/controllers/task_state.cpp
+    backend/controllers/sub_todo_state.cpp
     backend/controllers/habit_state.cpp
     backend/store/json_store.cpp
     backend/store/json_codecs.cpp
@@ -62,6 +63,7 @@ set(TERM_TODOS_SOURCES
     UI/tasks/board_view.cpp
     UI/tasks/collection_list.cpp
     UI/tasks/task_card.cpp
+    UI/tasks/sub_todo_list.cpp
     UI/habits/habits_view.cpp
     UI/habits/heatmap.cpp
 )
@@ -118,6 +120,7 @@ add_executable(term-todos-state-test
     backend/controllers/app_state.cpp
     backend/controllers/collection_state.cpp
     backend/controllers/task_state.cpp
+    backend/controllers/sub_todo_state.cpp
     backend/controllers/habit_state.cpp
     backend/store/json_store.cpp
     backend/store/json_codecs.cpp

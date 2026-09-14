@@ -17,6 +17,7 @@ const char* modal_prompt(AppState::ModalKind kind) {
         case AppState::ModalKind::AddTask:     return "New task";
         case AppState::ModalKind::EditTask:    return "Edit task title";
         case AppState::ModalKind::EditDescription: return "Edit task description (blank to clear)";
+        case AppState::ModalKind::AddSubTodo: return "New sub-todo";
         case AppState::ModalKind::SetDue:      return "Due date (YYYY-MM-DD or N days, blank to clear)";
         case AppState::ModalKind::Search:      return "Search tasks (title or label, blank to clear)";
         case AppState::ModalKind::AddHabit:    return "New habit";
@@ -95,6 +96,10 @@ Element render_help() {
         help_row("e",     "edit title"),
         help_row("D",     "edit description"),
         help_row("d",     "delete"),
+        help_row("s",     "new sub-todo"),
+        help_row("J / K", "select sub-todo"),
+        help_row("Space", "toggle sub-todo"),
+        help_row("X",     "delete sub-todo"),
         help_row("[ / ]", "cycle priority"),
         help_row("u",     "set due date"),
         help_row("f",     "search / filter"),

@@ -50,6 +50,7 @@ void AppState::open_selected_collection() {
     search_query.clear();
     selected_column = 0;
     selected_card = 0;
+    selected_sub_todo = 0;
     for (int column = 0; column < 3; ++column) {
         if (!column_tasks(column).empty()) {
             selected_column = column;

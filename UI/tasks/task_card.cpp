@@ -1,5 +1,6 @@
 #include "UI/tasks/task_card.hpp"
 
+#include "UI/tasks/sub_todo_list.hpp"
 #include "UI/theme.hpp"
 #include "backend/models/date.hpp"
 #include "backend/models/task.hpp"
@@ -58,7 +59,7 @@ Element due_chip(const Task& task, const std::string& today) {
 
 } // namespace
 
-Element render_task_card(const Task& task, bool focused) {
+Element render_task_card(const Task& task, bool focused, int selected_sub_todo) {
     std::ostringstream id_str;
     id_str << "#" << task.id;
 
@@ -96,6 +97,9 @@ Element render_task_card(const Task& task, bool focused) {
     Elements column = { title_line };
     if (!task.description.empty()) {
         column.push_back(text("    " + task.description) | color(theme::dim()));
+    }
+    if (!task.sub_todos.empty()) {
+        column.push_back(render_sub_todos(task, focused, selected_sub_todo));
     }
     if (!chips.empty()) {
         chips.pop_back(); // trailing gap

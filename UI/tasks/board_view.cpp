@@ -45,7 +45,8 @@ Element render_column(const AppState& state, const ColumnSpec& spec, int column_
     } else {
         for (int i = 0; i < static_cast<int>(tasks.size()); ++i) {
             const bool card_focused = focused && i == state.selected_card;
-            rows.push_back(render_task_card(*tasks[i], card_focused));
+            rows.push_back(render_task_card(*tasks[i], card_focused,
+                                            state.selected_sub_todo));
         }
     }
 
