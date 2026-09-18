@@ -60,6 +60,8 @@ int main(int argc, char** argv) {
 
     state.set_tab(AppState::Tab::Habits);
     snapshot(state, "Habits", 90, 26);
+    state.set_tab(AppState::Tab::Accomplishments);
+    snapshot(state, "Accomplishments", 80, 24);
 
     if (const char* out = std::getenv("TERM_TODOS_EXPORT")) {
         if (!term_todos::export_habits_csv(out, state, 30)) {

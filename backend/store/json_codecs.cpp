@@ -128,6 +128,13 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
         decode_collections(root, state);
         decode_tasks(root, state);
         decode_habits(root, state);
+        if (root.contains("accomplishments")) {
+            if (!root["accomplishments"].is_array()) return false;
+            for (const auto& item : root["accomplishments"]) {
+                const std::string title = item.at("title").get<std::string>();
+                if (!title.empty()) state.accomplishments.push_back({title, item.value("done", false)});
+            }
+        }
         return true;
     } catch (const nlohmann::json::exception&) {
         return false;
@@ -136,7 +143,8 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
 
 nlohmann::json encode_state_records(const AppState& state) {
     nlohmann::json root = {
-        {"schema_version", 4},
+        {"schema_version", 5},
+        {"accomplishments", nlohmann::json::array()},
         {"collections", nlohmann::json::array()},
         {"tasks", nlohmann::json::array()},
         {"habits", nlohmann::json::array()},
@@ -146,6 +154,9 @@ nlohmann::json encode_state_records(const AppState& state) {
     }
     for (const auto& task : state.tasks) root["tasks"].push_back(encode_task(task));
     for (const auto& habit : state.habits) root["habits"].push_back(encode_habit(habit));
+    for (const auto& item : state.accomplishments) {
+        root["accomplishments"].push_back({{"title", item.title}, {"done", item.done}});
+    }
     return root;
 }
 

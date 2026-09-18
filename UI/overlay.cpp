@@ -10,6 +10,8 @@ using namespace ftxui;
 
 const char* modal_prompt(AppState::ModalKind kind) {
     switch (kind) {
+        case AppState::ModalKind::AddAccomplishment: return "New accomplishment";
+        case AppState::ModalKind::RenameAccomplishment: return "Rename accomplishment";
         case AppState::ModalKind::AddCollection: return "New collection";
         case AppState::ModalKind::RenameCollection: return "Rename collection";
         case AppState::ModalKind::DeleteCollection: return "Delete collection";
@@ -77,7 +79,7 @@ Element render_help() {
         text("Keybindings") | bold | color(theme::accent()),
         separator(),
         text("Global") | bold | color(theme::dim()),
-        help_row("1 / 2", "switch tab"),
+        help_row("1 / 2 / 3", "switch tab"),
         help_row("Tab",   "cycle tab"),
         help_row("?",     "this help"),
         help_row("x",     "export habits to CSV"),
@@ -105,9 +107,9 @@ Element render_help() {
         help_row("f",     "search / filter"),
         help_row("b / Esc", "back to collections"),
         separator(),
-        text("Habits") | bold | color(theme::dim()),
+        text("Habits / Accomplishments") | bold | color(theme::dim()),
         help_row("j / k", "select habit"),
-        help_row("space", "toggle today"),
+        help_row("space", "toggle completion"),
         help_row("n",     "new habit"),
         help_row("e",     "rename"),
         help_row("d",     "delete"),

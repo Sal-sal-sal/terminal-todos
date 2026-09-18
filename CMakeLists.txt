@@ -41,6 +41,8 @@ file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/data" TERM_TODOS_DATA_DIR)
 
 # Shared sources for every target that renders the UI.
 set(TERM_TODOS_SOURCES
+    backend/controllers/accomplishment_state.cpp
+    UI/accomplishments/view.cpp
     backend/core/async_runner.cpp
     backend/models/task.cpp
     backend/models/habit.cpp
@@ -111,6 +113,7 @@ term_todos_target_common(term-todos-async-test)
 # --- Data-layer integration test --------------------------------------------
 
 add_executable(term-todos-state-test
+    backend/controllers/accomplishment_state.cpp
     tools/state_test.cpp
 
     backend/core/async_runner.cpp

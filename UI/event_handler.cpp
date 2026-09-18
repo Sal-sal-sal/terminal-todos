@@ -1,4 +1,5 @@
 #include "UI/event_handler.hpp"
+#include "UI/accomplishments/view.hpp"
 
 #include "UI/events/habit_events.hpp"
 #include "UI/events/task_events.hpp"
@@ -53,12 +54,15 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
         state.set_tab(AppState::Tab::Tasks);
         return true;
     }
-    if (event == Event::Tab) {
-        state.set_tab(state.tab == AppState::Tab::Tasks
-                          ? AppState::Tab::Habits
-                          : AppState::Tab::Tasks);
+    if (event == Event::Character('3')) {
+        state.set_tab(AppState::Tab::Accomplishments);
         return true;
     }
+    if (event == Event::Tab) {
+        state.set_tab(static_cast<AppState::Tab>((static_cast<int>(state.tab) + 1) % 3));
+        return true;
+    }
+    if (state.tab == AppState::Tab::Accomplishments) return handle_accomplishment_event(state, event, input_buffer);
     if (state.tab == AppState::Tab::Tasks) {
         return handle_task_event(state, event, input_buffer);
     }
@@ -68,6 +72,12 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
 void commit_modal(AppState& state, const std::string& buffer) {
     try {
         switch (state.modal) {
+            case AppState::ModalKind::AddAccomplishment:
+                state.add_accomplishment(buffer);
+                break;
+            case AppState::ModalKind::RenameAccomplishment:
+                state.rename_accomplishment(buffer);
+                break;
             case AppState::ModalKind::AddCollection:
                 state.add_collection(buffer);
                 break;

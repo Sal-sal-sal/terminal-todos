@@ -10,7 +10,7 @@
 namespace term_todos {
 
 struct AppState {
-    enum class Tab { Habits, Tasks };
+    enum class Tab { Habits, Tasks, Accomplishments };
     enum class TaskView { Collections, Board };
 
     Tab tab = Tab::Tasks;
@@ -19,6 +19,14 @@ struct AppState {
     std::vector<TodoCollection> collections;
     std::vector<Task> tasks;
     std::vector<Habit> habits;
+    struct Accomplishment { std::string title; bool done = false; };
+    std::vector<Accomplishment> accomplishments;
+    int selected_accomplishment = 0;
+    void navigate_accomplishment(int delta);
+    void add_accomplishment(const std::string& title);
+    void rename_accomplishment(const std::string& title);
+    void toggle_accomplishment();
+    void delete_accomplishment();
 
     std::string data_path;
     bool dirty = false;
@@ -43,6 +51,8 @@ struct AppState {
         Search,
         AddHabit,
         RenameHabit,
+        AddAccomplishment,
+        RenameAccomplishment,
     };
     ModalKind modal = ModalKind::None;
     int edit_target_id = 0;

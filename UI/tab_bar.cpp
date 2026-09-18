@@ -25,7 +25,7 @@ ftxui::Element render_tab_bar(const AppState& state) {
     using namespace ftxui;
     const bool on_habits = state.tab == AppState::Tab::Habits;
     auto habits = tab_item("Habits", on_habits);
-    auto tasks = tab_item("Tasks", !on_habits);
+    auto tasks = tab_item("Tasks", state.tab == AppState::Tab::Tasks);
 
     auto bar = hbox({
         text(" term-todos ") | bold | color(theme::accent()),
@@ -33,8 +33,10 @@ ftxui::Element render_tab_bar(const AppState& state) {
         habits,
         separator(),
         tasks,
+        separator(),
+        tab_item(" Accomplishments ", state.tab == AppState::Tab::Accomplishments),
         filler(),
-        text("1/2 tabs ") | color(theme::dim()),
+        text("1/2/3 ") | color(theme::dim()),
     });
 
     return bar | border;

@@ -1,4 +1,5 @@
 #include "UI/app_view.hpp"
+#include "UI/accomplishments/view.hpp"
 
 #include "UI/event_handler.hpp"
 #include "UI/habits/habits_view.hpp"
@@ -71,6 +72,7 @@ Element footer(const AppState& state) {
 }
 
 Element content(const AppState& state) {
+    if (state.tab == AppState::Tab::Accomplishments) return render_accomplishments(state);
     if (state.tab == AppState::Tab::Tasks) {
         return state.task_view == AppState::TaskView::Collections
             ? render_collection_list(state)

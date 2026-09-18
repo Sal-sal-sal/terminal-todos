@@ -66,6 +66,7 @@ Install the command and enable the splash for new Zsh terminals:
 
 ```sh
 install -m 0755 tools/term-todo-splash ~/.local/bin/term-todo-splash
+install -m 0644 tools/accomplishment_preview.py ~/.local/bin/accomplishment_preview.py
 term-todo-splash install
 ```
 
@@ -100,7 +101,7 @@ Global:
 
 | Key     | Action                     |
 |---------|----------------------------|
-| `1`/`2` | switch tab                 |
+| `1`/`2`/`3` | switch tab             |
 | `Tab`   | cycle tab                  |
 | `?`     | toggle keybindings overlay |
 | `x`     | export habits to CSV       |
@@ -136,6 +137,14 @@ Collection board:
 | `f`     | search / filter              |
 | `b`/Esc | return to collections        |
 
+Accomplishments (tab `3`):
+
+Use `n` to add a goal, `j`/`k` or arrows to select, `Space` or `Enter` to toggle completion, `e` to rename, and `d` to delete.
+Press `q` to save and exit.
+The terminal startup preview includes a gold `ACCOMPLISHMENTS` section with a completion count; completed titles are dimmed and struck through.
+Terminals without ANSI styling show `[x]` and `[ ]` instead.
+The section appears after you save your first accomplishment.
+
 Habits:
 
 | Key     | Action            |
@@ -153,7 +162,8 @@ Search matches task titles, labels, and collection names case-insensitively.
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
+  "accomplishments": [{ "title": "Finish my project", "done": false }],
   "collections": [
     { "id": 1, "name": "Inbox" }
   ],

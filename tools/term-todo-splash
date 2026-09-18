@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Print and manage the term-todos habit heatmap shell splash."""
-
+"""Print habits and accomplishments above the shell prompt."""
 from __future__ import annotations
 
 import json
@@ -13,6 +12,7 @@ import sys
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
+from accomplishment_preview import render_accomplishments
 
 START = "# >>> term-todo habit splash >>>"
 END = "# <<< term-todo habit splash <<<"
@@ -27,15 +27,20 @@ def data_path() -> Path:
     base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
     return base / "term-todos" / "data.json"
 
-def load_habits() -> list[dict]:
+def load_payload() -> dict:
     path = data_path()
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(f"не удалось прочитать {path}: {error}") from error
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"неверный формат данных в {path}")
+    return payload
+
+def load_habits(payload) -> list[dict]:
     habits = payload.get("habits", [])
     if not isinstance(habits, list):
-        raise RuntimeError(f"неверный формат habits в {path}")
+        raise RuntimeError("неверный формат habits")
     return [habit for habit in habits if isinstance(habit, dict)]
 
 def is_done(habit: dict, day: date) -> bool:
@@ -61,7 +66,6 @@ def color_enabled() -> bool:
 def paint(text: str, code: str, enabled: bool) -> str:
     return f"\033[{code}m{text}\033[0m" if enabled else text
 
-
 def cell(level: int | None, enabled: bool) -> str:
     if level is None:
         return "  "
@@ -70,12 +74,10 @@ def cell(level: int | None, enabled: bool) -> str:
     red, green, blue = PALETTE[level]
     return f"\033[48;2;{red};{green};{blue}m  \033[0m"
 
-
 def week_window(weeks: int, today: date) -> list[date]:
     current_monday = today - timedelta(days=today.weekday())
     first_monday = current_monday - timedelta(weeks=weeks - 1)
     return [first_monday + timedelta(weeks=index) for index in range(weeks)]
-
 def month_header(starts: list[date]) -> str:
     labels = [" "] * (len(starts) * 2)
     previous = -1
@@ -99,7 +101,8 @@ def aggregate_level(habits: list[dict], day: date, today: date) -> int | None:
     return min(4, math.ceil(completed * 4 / len(habits)))
 
 def render(weeks: int = 12) -> str:
-    habits = load_habits()
+    payload = load_payload()
+    habits = load_habits(payload)
     today = date.today()
     enabled = color_enabled()
     done_today = sum(is_done(habit, today) for habit in habits)
@@ -126,6 +129,7 @@ def render(weeks: int = 12) -> str:
         name = name[: max(8, width - 15)]
         run = paint(f"{streak(habit, today)}d", "33", enabled)
         lines.append(f"  {mark} {name}  {run}")
+    lines.extend(render_accomplishments(payload.get("accomplishments", []), enabled, width))
     return "\n".join(lines)
 
 

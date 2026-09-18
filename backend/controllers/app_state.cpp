@@ -36,6 +36,8 @@ void AppState::set_tab(Tab next) {
 }
 
 void AppState::clamp_selection() {
+    selected_accomplishment = accomplishments.empty() ? 0 :
+        state_helpers::clamp_int(selected_accomplishment, 0, static_cast<int>(accomplishments.size()) - 1);
     if (collections.empty()) {
         selected_collection_id = 0;
         task_view = TaskView::Collections;
