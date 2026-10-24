@@ -28,7 +28,7 @@ cmake -S . -B build
 cmake --build build
 ```
 
-Four targets are produced:
+The main build targets are:
 
 - `term-todos` - the interactive app.
 - `term-todos-snapshot` - renders a fixed-size ASCII frame of each tab for
@@ -36,6 +36,8 @@ Four targets are produced:
 - `term-todos-ui-event-test` - drives real FTXUI keyboard events without a TTY.
 - `term-todos-state-test` - data-layer integration test
   (load, mutate, save, reload).
+- `term-todos-habit-markup-test` - color-tag and legacy-bracket parser test.
+- `term-todos-cli-test` and `term-todos-async-test` - CLI and async regressions.
 
 ## Run
 
@@ -67,6 +69,7 @@ Install the command and enable the splash for new Zsh terminals:
 ```sh
 install -m 0755 tools/term-todo-splash ~/.local/bin/term-todo-splash
 install -m 0644 tools/accomplishment_preview.py ~/.local/bin/accomplishment_preview.py
+install -m 0644 tools/habit_formula_preview.py ~/.local/bin/habit_formula_preview.py
 term-todo-splash install
 ```
 
@@ -101,7 +104,7 @@ Global:
 
 | Key     | Action                     |
 |---------|----------------------------|
-| `1`/`2`/`3` | switch tab             |
+| `1`/`2`/`3`/`4` | switch tab             |
 | `Tab`   | cycle tab                  |
 | `?`     | toggle keybindings overlay |
 | `x`     | export habits to CSV       |
@@ -137,11 +140,17 @@ Collection board:
 | `f`     | search / filter              |
 | `b`/Esc | return to collections        |
 
+Goals (tab `4`) provides a branching map of goals, tasks, nested subtasks, and linked daily habits.
+See [Goals guide](docs/goals.md) for controls and saving behavior.
+
 Accomplishments (tab `3`):
 
 Use `n` to add a goal, `j`/`k` or arrows to select, `Space` or `Enter` to toggle completion, `e` to rename, and `d` to delete.
 Press `q` to save and exit.
-The terminal startup preview includes a gold `ACCOMPLISHMENTS` section with a completion count; completed titles are dimmed and struck through.
+The terminal startup preview includes a gold `ACCOMPLISHMENTS` section with a completion count.
+Completed titles turn green and are struck through.
+They remain in the current list until the local calendar day ends, then appear under `ACCOMPLISH COMPLETED`.
+The app updates this grouping automatically at midnight, and the completed date is saved with each item.
 Terminals without ANSI styling show `[x]` and `[ ]` instead.
 The section appears after you save your first accomplishment.
 
@@ -153,7 +162,42 @@ Habits:
 | `space` | toggle today      |
 | `n`     | new habit         |
 | `e`     | rename            |
+| `D`     | edit or clear description |
+| Enter   | switch between description and heatmap |
+| PgUp / PgDn | scroll the habit details |
+| Home / End | jump to the start or end of the details |
 | `d`     | delete            |
+| `?`     | show keys and color tags |
+
+Habit descriptions are saved with the habit.
+The right panel shows a short preview above the heatmap; press Enter for the full description, then Enter again to return to the heatmap.
+Habit names wrap in full in the right panel, both above the heatmap and in description view.
+Full descriptions have no line limit.
+Use PgUp/PgDn to scroll long text, or Home/End to reach its beginning or end.
+Press `D` to edit it, or submit a blank description to clear it.
+
+Use color tags in habit names or descriptions:
+
+```text
+Read [#orange]one chapter[#end] in [#green]the library[#end]
+Review [#red]important notes[#end] at [#blue]8:00[#end]
+```
+
+`[#red]`, `[#green]`, `[#orange]`, and `[#blue]` color the following text until another tag or `[#end]`.
+The tags are hidden when displayed, including in the terminal startup preview.
+Press `?` in the app for the complete keyboard and color guide.
+
+The older positional square-bracket syntax still works in habit names:
+
+```text
+i'm [running] in [mountain] at [6:00]
+```
+
+The first bracketed part is light red for behavior, the second light green for place, and the third light blue for time.
+The surrounding words can be anything, and one or two bracketed parts work too.
+The brackets are editing markers and are hidden in the Habits tab and terminal startup preview.
+Habits without bracketed parts remain plain text.
+For an existing habit, press `e` and wrap the three parts in brackets.
 
 The due-date prompt accepts a full `YYYY-MM-DD`, an integer `N` (days from today), or a blank value to clear it.
 Search matches task titles, labels, and collection names case-insensitively.
@@ -162,8 +206,9 @@ Search matches task titles, labels, and collection names case-insensitively.
 
 ```json
 {
-  "schema_version": 5,
-  "accomplishments": [{ "title": "Finish my project", "done": false }],
+  "schema_version": 6,
+  "accomplishments": [{ "title": "Finish my project", "done": true,
+    "completed_on": "2026-09-30" }],
   "collections": [
     { "id": 1, "name": "Inbox" }
   ],
@@ -179,6 +224,7 @@ Search matches task titles, labels, and collection names case-insensitively.
   ],
   "habits": [
     { "id": 1, "name": "Drink water",
+      "description": "Drink a glass [#blue]after waking[#end]",
       "history": { "2026-07-15": true, "2026-07-14": true } }
   ]
 }

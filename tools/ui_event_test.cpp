@@ -1,7 +1,10 @@
 #include "UI/app_view.hpp"
+#include "backend/models/habit_formula.hpp"
 
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -49,10 +52,53 @@ void test_empty_column_navigation() {
             "focused task did not move to Done");
 }
 
+void test_habit_formula() {
+    const std::string phrase = "i'm [running] in [mountain] at [6:00]";
+    const auto parsed = parse_habit_formula(phrase);
+    require(parsed && parsed->behavior == "running" && parsed->place == "mountain"
+        && parsed->time == "6:00", "bracketed habit was not parsed");
+    require(parse_habit_formula("I will [read] in [library] at [8:00]").has_value(),
+            "original habit formula stopped working");
+    require(!parse_habit_formula("Drink water"), "plain habit became a formula");
+    require(!parse_habit_formula("I will []"), "empty marked part was accepted");
+    const auto partial = parse_habit_formula("After [coffee], [walk] at []");
+    require(partial && partial->parts == 2 && partial->behavior == "coffee"
+        && partial->place == "walk" && partial->suffix == " at []",
+        "valid marked parts were lost after an empty pair");
+
+    AppState state;
+    state.collections.push_back({1, "Inbox"});
+    auto screen = ftxui::ScreenInteractive::FixedSize(90, 26);
+    auto app = make_app(state, screen);
+    require(app->OnEvent(Event::Character('1')), "habit tab did not open");
+    require(app->OnEvent(Event::Character('n')), "habit modal did not open");
+    type(app, phrase);
+    require(app->OnEvent(Event::Return), "habit save failed");
+    require(state.habits.size() == 1
+        && state.habits.front().name == phrase,
+        "habit formula was not saved");
+
+    ftxui::Screen frame = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(90), ftxui::Dimension::Fixed(26));
+    ftxui::Render(frame, render_app(state));
+    const std::string output = frame.ToString();
+    require(output.find("running") != std::string::npos
+        && output.find("mountain") != std::string::npos
+        && output.find("6:00") != std::string::npos,
+        "formula values were not rendered");
+    require(output.find("[running]") == std::string::npos,
+        "editing markers were shown in the habit view");
+    require(output.find("\x1b[91m") != std::string::npos
+        && output.find("\x1b[92m") != std::string::npos
+        && output.find("\x1b[94m") != std::string::npos,
+        "behavior, place, or time is missing its highlight color");
+}
+
 } // namespace
 
 int main() {
     test_empty_column_navigation();
+    test_habit_formula();
 
     AppState state;
     state.collections.push_back({1, "Inbox"});

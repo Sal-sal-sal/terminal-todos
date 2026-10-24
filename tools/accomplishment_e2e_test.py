@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import termios
 import time
+from datetime import date, timedelta
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,20 +57,33 @@ def main():
         output = interact(path, ["3", "n", "Learn Rust", "\r", " ", "n", "Read a book", "\r", "q"])
         data = json.loads(path.read_text())
         assert data["accomplishments"] == [
-            {"title": "Learn Rust", "done": True}, {"title": "Read a book", "done": False}]
+            {"title": "Learn Rust", "done": True, "completed_on": date.today().isoformat()},
+            {"title": "Read a book", "done": False}]
         assert b"ACCOMPLISHMENTS" in output
+        assert "✦".encode() in output, "completion animation did not render"
+        assert "✧".encode() in output, "completion animation did not advance"
         assert data["collections"] == seed["collections"]
         env = dict(os.environ, TERM_TODOS_DATA=str(path), TERM_TODO_SPLASH_COLOR="always")
         preview = subprocess.check_output([str(ROOT / "tools/term-todo-splash")], env=env).decode()
-        assert "\033[9;90mLearn Rust\033[0m" in preview
+        assert "\033[9;92mLearn Rust\033[0m" in preview
         assert "\033[1;37mRead a book\033[0m" in preview
-        assert "1/2 completed" in preview
+        assert "1/2 completed today" in preview
+        assert "ACCOMPLISH COMPLETED" not in preview
+
+        data["accomplishments"][0]["completed_on"] = (date.today() - timedelta(days=1)).isoformat()
+        path.write_text(json.dumps(data))
+        archived_snapshot = subprocess.check_output([str(ROOT / "build/term-todos-snapshot"), str(path)])
+        current_section, archived_section = archived_snapshot.decode().split("ACCOMPLISH COMPLETED", 1)
+        assert "Read a book" in current_section and "Learn Rust" not in current_section
+        assert "Learn Rust" in archived_section
+        archived_preview = subprocess.check_output([str(ROOT / "tools/term-todo-splash")], env=env).decode()
+        assert "ACCOMPLISH COMPLETED" in archived_preview
+        assert "\033[9;32mLearn Rust\033[0m" in archived_preview
         interact(path, ["3", " ", "e", "\x1b[F", "\x7f" * 10, "Master Rust", "\r", "j", "d", "q"])
         data = json.loads(path.read_text())
         assert data["accomplishments"] == [{"title": "Master Rust", "done": False}], data
         snapshot = subprocess.check_output([str(ROOT / "build/term-todos-snapshot"), str(path)])
         assert b"Master Rust" in snapshot
-        print(snapshot.decode().split("===== Accomplishments")[1])
         env["TERM_TODO_SPLASH_COLOR"] = "never"
         preview = subprocess.check_output([str(ROOT / "tools/term-todo-splash")], env=env).decode()
         assert "[ ]  Master Rust" in preview and "\033[" not in preview

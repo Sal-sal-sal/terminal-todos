@@ -1,4 +1,6 @@
 #include "UI/overlay.hpp"
+#include "UI/habits/deletion/dialog.hpp"
+#include "UI/goals/modal.hpp"
 
 #include "UI/theme.hpp"
 
@@ -23,15 +25,25 @@ const char* modal_prompt(AppState::ModalKind kind) {
         case AppState::ModalKind::SetDue:      return "Due date (YYYY-MM-DD or N days, blank to clear)";
         case AppState::ModalKind::Search:      return "Search tasks (title or label, blank to clear)";
         case AppState::ModalKind::AddHabit:    return "New habit";
-        case AppState::ModalKind::RenameHabit: return "Rename habit";
+        case AppState::ModalKind::DeleteHabit: return "Delete habit";
+        case AppState::ModalKind::ConfirmDeleteHabit: return "Final confirmation";
+        case AppState::ModalKind::RenameHabit: return "Edit habit";
+        case AppState::ModalKind::EditHabitDescription: return "Habit description (blank to clear)";
         case AppState::ModalKind::None:        return nullptr;
+        default: return nullptr;
     }
     return nullptr;
 }
 
 Element render_modal(const AppState& state, const Element& input_box) {
+    if (is_goal_modal(state.modal)) return render_goal_modal(state, input_box);
     const char* prompt = modal_prompt(state.modal);
     if (!prompt) return text("");
+
+    if (state.modal == AppState::ModalKind::DeleteHabit
+        || state.modal == AppState::ModalKind::ConfirmDeleteHabit) {
+        return render_habit_deletion(state, input_box);
+    }
 
     if (state.modal == AppState::ModalKind::DeleteCollection) {
         const auto* collection = state.selected_collection();
@@ -52,71 +64,36 @@ Element render_modal(const AppState& state, const Element& input_box) {
             | border | color(theme::warn()) | clear_under | center;
     }
 
+    const bool habit_modal = state.modal == AppState::ModalKind::AddHabit
+        || state.modal == AppState::ModalKind::RenameHabit;
+    Elements fields = {input_box};
+    if (habit_modal) {
+        fields.push_back(hbox({
+            text("i'm ") | color(theme::dim()),
+            text("[running]") | color(Color::RedLight),
+            text(" in ") | color(theme::dim()),
+            text("[mountain]") | color(Color::GreenLight),
+            text(" at ") | color(theme::dim()),
+            text("[6:00]") | color(Color::BlueLight),
+        }));
+        fields.push_back(hbox({
+            text("behavior") | color(Color::RedLight), text("  "),
+            text("place") | color(Color::GreenLight), text("  "),
+            text("time") | color(Color::BlueLight),
+        }));
+    }
+    if (habit_modal || state.modal == AppState::ModalKind::EditHabitDescription) {
+        fields.push_back(text("Colors: [#red] [#green] [#orange] [#blue] [#end]")
+                         | color(theme::dim()));
+    }
+    fields.push_back(text("Enter to confirm - Esc to cancel") | color(theme::dim()));
+
     auto box = window(
         text(prompt) | bold | color(theme::accent()),
-        vbox({
-            input_box,
-            text("Enter to confirm - Esc to cancel") | color(theme::dim()),
-        })
+        vbox(fields)
     ) | border | color(theme::muted());
 
     return box | clear_under | center;
-}
-
-namespace {
-
-Element help_row(const char* key, const char* desc) {
-    return hbox({
-        text(key) | color(theme::accent()) | size(WIDTH, EQUAL, 10),
-        text(desc) | color(theme::muted()),
-    });
-}
-
-} // namespace
-
-Element render_help() {
-    auto body = vbox({
-        text("Keybindings") | bold | color(theme::accent()),
-        separator(),
-        text("Global") | bold | color(theme::dim()),
-        help_row("1 / 2 / 3", "switch tab"),
-        help_row("Tab",   "cycle tab"),
-        help_row("?",     "this help"),
-        help_row("x",     "export habits to CSV"),
-        help_row("q",     "quit (saves on exit)"),
-        separator(),
-        text("Collections") | bold | color(theme::dim()),
-        help_row("j / k", "select collection"),
-        help_row("Enter/l", "open collection"),
-        help_row("n/e/d", "new / rename / delete"),
-        help_row("f",     "find collections"),
-        separator(),
-        text("Collection board") | bold | color(theme::dim()),
-        help_row("h / l", "move card across columns"),
-        help_row("j / k", "select card"),
-        help_row("n",     "new task"),
-        help_row("e",     "edit title"),
-        help_row("D",     "edit description"),
-        help_row("d",     "delete"),
-        help_row("s",     "new sub-todo"),
-        help_row("J / K", "select sub-todo"),
-        help_row("Space", "toggle sub-todo"),
-        help_row("X",     "delete sub-todo"),
-        help_row("[ / ]", "cycle priority"),
-        help_row("u",     "set due date"),
-        help_row("f",     "search / filter"),
-        help_row("b / Esc", "back to collections"),
-        separator(),
-        text("Habits / Accomplishments") | bold | color(theme::dim()),
-        help_row("j / k", "select habit"),
-        help_row("space", "toggle completion"),
-        help_row("n",     "new habit"),
-        help_row("e",     "rename"),
-        help_row("d",     "delete"),
-        text(" "),
-        text("Press ? or Esc to close") | color(theme::dim()),
-    });
-    return body | border | color(theme::muted()) | clear_under | center;
 }
 
 std::string export_path(const std::string& data_path) {

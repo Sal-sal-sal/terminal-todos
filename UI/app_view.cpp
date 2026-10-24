@@ -1,5 +1,7 @@
 #include "UI/app_view.hpp"
 #include "UI/accomplishments/view.hpp"
+#include "UI/goals/view.hpp"
+#include "UI/goals/events.hpp"
 
 #include "UI/event_handler.hpp"
 #include "UI/habits/habits_view.hpp"
@@ -38,6 +40,7 @@ Element hint_row(const Hint* hints, int count) {
 }
 
 Element footer(const AppState& state) {
+    if (state.tab == AppState::Tab::Goals) return goals_footer(state);
     if (state.is_busy) {
         return hbox({
             text("⏳ ") | color(theme::accent()),
@@ -64,6 +67,14 @@ Element footer(const AppState& state) {
         };
         return hint_row(hints, sizeof(hints) / sizeof(hints[0]));
     }
+    if (state.tab == AppState::Tab::Habits) {
+        static const Hint hints[] = {
+            {"j/k", "move"}, {"space", "done"}, {"n", "new"},
+            {"e", "name"}, {"d", "del"}, {"D", "desc"},
+            {"Enter", "view"}, {"?", "help"},
+        };
+        return hint_row(hints, sizeof(hints) / sizeof(hints[0]));
+    }
     static const Hint hints[] = {
         {"j/k", "select"}, {"space", "toggle"}, {"n", "new"},
         {"e", "rename"}, {"d", "delete"},
@@ -72,6 +83,7 @@ Element footer(const AppState& state) {
 }
 
 Element content(const AppState& state) {
+    if (state.tab == AppState::Tab::Goals) return render_goals(state);
     if (state.tab == AppState::Tab::Accomplishments) return render_accomplishments(state);
     if (state.tab == AppState::Tab::Tasks) {
         return state.task_view == AppState::TaskView::Collections
@@ -103,10 +115,10 @@ Component make_app(AppState& state, ScreenInteractive& screen) {
     auto root = Renderer(input, [&state, input] {
         try {
             Element body = render_app(state);
-            if (state.show_help) {
-                body = dbox({body, render_help()});
-            } else if (state.modal != AppState::ModalKind::None) {
+            if (state.modal != AppState::ModalKind::None) {
                 body = dbox({body, render_modal(state, input->Render())});
+            } else if (state.show_help) {
+                body = dbox({body, state.tab == AppState::Tab::Goals ? goals_help() : render_help()});
             }
             return body;
         } catch (const std::exception& ex) {
@@ -124,23 +136,32 @@ Component make_app(AppState& state, ScreenInteractive& screen) {
 
     root |= CatchEvent([&state, &screen, input, input_content](const Event& event) {
         try {
+            if (event == Event::Custom) return true;
             if (state.show_help) {
                 // Any key closes the help overlay.
                 state.show_help = false;
                 return true;
             }
             if (state.modal != AppState::ModalKind::None) {
+                if (handle_goal_picker_event(state, event)) return true;
                 if (event == Event::Return) {
                     commit_modal(state, *input_content);
                     input_content->clear();
                     return true;
                 }
                 if (event == Event::Escape) {
+                    if (state.modal == AppState::ModalKind::DeleteHabit
+                        || state.modal == AppState::ModalKind::ConfirmDeleteHabit) {
+                        state.edit_target_id = 0;
+                        state.clear_status();
+                    }
                     state.modal = AppState::ModalKind::None;
                     input_content->clear();
                     return true;
                 }
                 // Route typing to the input box.
+                if (state.modal == AppState::ModalKind::DeleteHabit
+                    || state.modal == AppState::ModalKind::DeleteGoal) return true;
                 return input->OnEvent(event);
             }
             return handle_event(state, event, screen, *input_content);

@@ -1,17 +1,21 @@
 #include "UI/app_view.hpp"
 #include "backend/controllers/app_state.hpp"
 #include "backend/core/async_runner.hpp"
+#include "backend/models/date.hpp"
 #include "backend/store/json_store.hpp"
 #include "src/cli.hpp"
 
 #include <ftxui/component/screen_interactive.hpp>
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #ifndef TERM_TODOS_DATA_DIR
 #define TERM_TODOS_DATA_DIR "."
@@ -20,6 +24,31 @@
 namespace {
 
 namespace fs = std::filesystem;
+
+// Wake the UI when the local calendar day changes, including while it is idle.
+class DayChangeWatcher {
+ public:
+    explicit DayChangeWatcher(ftxui::ScreenInteractive& screen)
+        : worker_([&screen, stopped = stop_.get_future()]() mutable {
+            std::string seen = term_todos::iso_today();
+            while (stopped.wait_for(std::chrono::seconds(1)) == std::future_status::timeout) {
+                const std::string today = term_todos::iso_today();
+                if (today != seen) {
+                    seen = today;
+                    screen.PostEvent(ftxui::Event::Custom);
+                }
+            }
+        }) {}
+
+    ~DayChangeWatcher() {
+        stop_.set_value();
+        worker_.join();
+    }
+
+ private:
+    std::promise<void> stop_;
+    std::thread worker_;
+};
 
 // Path to the bundled mock data, resolved at build time.
 std::string bundled_mock_path() {
@@ -96,6 +125,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    state.read_only_data = is_bundled;
+
     if (options.action == CliAction::List) {
         print_task_list(std::cout, state);
         return 0;
@@ -103,7 +134,10 @@ int main(int argc, char** argv) {
 
     ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
     ftxui::Component app = make_app(state, screen);
-    screen.Loop(app);
+    {
+        DayChangeWatcher day_change(screen);
+        screen.Loop(app);
+    }
 
     // Persist any unsaved mutations on a clean exit with timeout and error handling.
     if (state.dirty && !is_bundled) {

@@ -32,6 +32,8 @@ void AppState::clear_status() {
 
 void AppState::set_tab(Tab next) {
     tab = next;
+    habit_detail_line = 0;
+    if (next != Tab::Habits) show_habit_description = false;
     clamp_selection();
 }
 

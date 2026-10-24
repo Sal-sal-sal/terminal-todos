@@ -16,7 +16,7 @@ namespace term_todos {
 bool handle_event(AppState& state, const ftxui::Event& event,
                   ftxui::ScreenInteractive& screen, std::string& input_buffer);
 
-// Applies the buffered text to the open modal, then closes it.
+// Applies buffered text; deletion can advance a step or require another attempt.
 void commit_modal(AppState& state, const std::string& buffer);
 
 } // namespace term_todos

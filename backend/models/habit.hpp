@@ -12,6 +12,7 @@ namespace term_todos {
 struct Habit {
     int id = 0;
     std::string name;
+    std::string description;
     std::map<std::string, bool> history;
 
     // Returns true if the habit was completed on the given ISO date.

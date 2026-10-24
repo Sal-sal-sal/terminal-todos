@@ -7,6 +7,7 @@
 
 #include "backend/controllers/app_state.hpp"
 #include "backend/models/date.hpp"
+#include "backend/models/habit_formula.hpp"
 #include "backend/models/task.hpp"
 #include "backend/store/json_store.hpp"
 
@@ -47,6 +48,7 @@ int main() {
 
     AppState s;
     check(load_state(mock, s, /*rebase=*/false), "load bundled mock");
+    s.data_path = tmp; // Autosave must never modify the bundled fixture.
     check(s.collections.size() == 1 && s.collections.front().name == "Inbox",
           "legacy data migrated to Inbox");
     bool legacy_linked = true;
@@ -67,6 +69,7 @@ int main() {
     s.add_sub_todo("Sub-task A");
     s.toggle_selected_sub_todo();
     s.add_habit("Test habit A");
+    check(!s.dirty, "habit creation autosaves pending changes");
     s.selected_column = 0; // Todo column
     s.selected_card = 0;
     s.move_task_right(); // move focused Todo card to In Progress
@@ -117,6 +120,56 @@ int main() {
 
     // Toggle persisted: the last habit should be done today.
     check(r.habits.back().done_on(iso_today()), "habit toggle persisted");
+
+    // Highlight markup is stored verbatim so editing and reloading preserve it.
+    const std::string formula_name = "i'm [running] in [mountain] at [6:00]";
+    r.add_habit(formula_name);
+    check(save_state(tmp, r), "save highlighted habit");
+    AppState highlighted;
+    check(load_state(tmp, highlighted, /*rebase=*/false), "reload highlighted habit");
+    check(highlighted.habits.back().name == formula_name
+        && parse_habit_formula(highlighted.habits.back().name).has_value(),
+        "highlighted habit round-tripped");
+    highlighted.selected_habit = static_cast<int>(highlighted.habits.size()) - 1;
+    highlighted.set_habit_description("Start after [#orange]breakfast[#end]");
+    check(save_state(tmp, highlighted), "save habit description");
+    AppState described;
+    check(load_state(tmp, described, /*rebase=*/false), "reload habit description");
+    check(described.habits.back().description == "Start after [#orange]breakfast[#end]"
+        && described.habits.back().history == highlighted.habits.back().history,
+        "habit description persisted without changing history");
+    described.selected_habit = static_cast<int>(described.habits.size()) - 1;
+    described.set_habit_description("");
+    check(described.habits.back().description.empty(), "blank clears habit description");
+
+    highlighted.add_accomplishment("Finish chapter");
+    highlighted.toggle_accomplishment();
+    check(highlighted.accomplishments.back().done
+        && highlighted.accomplishments.back().completed_on == iso_today(),
+        "completion date recorded");
+    check(!highlighted.accomplishments.back().archived_on(iso_today())
+        && highlighted.accomplishments.back().archived_on(iso_add_days(iso_today(), 1)),
+        "completed item moves only after the day changes");
+    highlighted.accomplishments.push_back({"Older work", true, {}});
+    const auto order = highlighted.accomplishment_order(iso_today());
+    check(order.size() == 2 && order[0] == 0 && order[1] == 1,
+        "current work precedes legacy completed work");
+    check(save_state(tmp, highlighted), "save dated accomplishment");
+    AppState with_completed;
+    check(load_state(tmp, with_completed, /*rebase=*/false), "reload dated accomplishment");
+    check(with_completed.accomplishments.size() == 2
+        && with_completed.accomplishments[0].completed_on == iso_today()
+        && with_completed.accomplishments[1].archived_on(iso_today()),
+        "dated and legacy completions round-tripped");
+    with_completed.selected_accomplishment = 0;
+    with_completed.navigate_accomplishment(1);
+    check(with_completed.selected_accomplishment == 1,
+        "navigation crosses from current work into completed work");
+    with_completed.selected_accomplishment = 1;
+    with_completed.toggle_accomplishment();
+    check(!with_completed.accomplishments[1].done
+        && with_completed.accomplishments[1].completed_on.empty(),
+        "archived work can return to the current list");
 
     // Search filter: the added task matches its own title, not "zzz".
     s.search_query = "Test task A";

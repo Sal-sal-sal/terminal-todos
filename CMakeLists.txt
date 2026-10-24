@@ -40,22 +40,37 @@ FetchContent_MakeAvailable(json)
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/data" TERM_TODOS_DATA_DIR)
 
 # Shared sources for every target that renders the UI.
+set(TERM_TODOS_GOAL_SOURCES
+    backend/goals/model.cpp
+    backend/goals/controller.cpp
+    backend/goals/deletion.cpp
+    backend/goals/habits.cpp
+    backend/goals/codecs.cpp
+)
 set(TERM_TODOS_SOURCES
+    ${TERM_TODOS_GOAL_SOURCES}
+    UI/goals/view.cpp
+    UI/goals/events.cpp
+    UI/goals/modal.cpp
     backend/controllers/accomplishment_state.cpp
     UI/accomplishments/view.cpp
     backend/core/async_runner.cpp
     backend/models/task.cpp
     backend/models/habit.cpp
+    backend/models/habit_formula.cpp
+    backend/models/habit_markup.cpp
     backend/models/date.cpp
     backend/controllers/app_state.cpp
     backend/controllers/collection_state.cpp
     backend/controllers/task_state.cpp
     backend/controllers/sub_todo_state.cpp
     backend/controllers/habit_state.cpp
+    backend/controllers/habit_deletion/confirmation.cpp
     backend/store/json_store.cpp
     backend/store/json_codecs.cpp
 
     UI/app_view.cpp
+    UI/help_view.cpp
     UI/event_handler.cpp
     UI/events/task_events.cpp
     UI/events/habit_events.cpp
@@ -67,6 +82,8 @@ set(TERM_TODOS_SOURCES
     UI/tasks/task_card.cpp
     UI/tasks/sub_todo_list.cpp
     UI/habits/habits_view.cpp
+    UI/habits/deletion/dialog.cpp
+    UI/habits/styled_text.cpp
     UI/habits/heatmap.cpp
 )
 
@@ -95,6 +112,13 @@ add_executable(term-todos-cli-test
 )
 term_todos_target_common(term-todos-cli-test)
 
+add_executable(term-todos-habit-markup-test
+    tools/habit_markup_test.cpp
+    backend/models/habit_formula.cpp
+    backend/models/habit_markup.cpp
+)
+term_todos_target_common(term-todos-habit-markup-test)
+
 # --- Non-interactive render harness (pixel-perfect UI review) -----------------
 
 add_executable(term-todos-snapshot tools/snapshot.cpp ${TERM_TODOS_SOURCES})
@@ -105,6 +129,9 @@ term_todos_target_common(term-todos-snapshot)
 add_executable(term-todos-ui-event-test tools/ui_event_test.cpp ${TERM_TODOS_SOURCES})
 term_todos_target_common(term-todos-ui-event-test)
 
+add_executable(term-todos-goals-test tools/goals_test.cpp ${TERM_TODOS_SOURCES})
+term_todos_target_common(term-todos-goals-test)
+
 # --- Async, timeout, and error handling regression test -------------------
 
 add_executable(term-todos-async-test tools/async_error_test.cpp ${TERM_TODOS_SOURCES})
@@ -113,18 +140,22 @@ term_todos_target_common(term-todos-async-test)
 # --- Data-layer integration test --------------------------------------------
 
 add_executable(term-todos-state-test
+    ${TERM_TODOS_GOAL_SOURCES}
     backend/controllers/accomplishment_state.cpp
     tools/state_test.cpp
 
     backend/core/async_runner.cpp
     backend/models/task.cpp
     backend/models/habit.cpp
+    backend/models/habit_formula.cpp
+    backend/models/habit_markup.cpp
     backend/models/date.cpp
     backend/controllers/app_state.cpp
     backend/controllers/collection_state.cpp
     backend/controllers/task_state.cpp
     backend/controllers/sub_todo_state.cpp
     backend/controllers/habit_state.cpp
+    backend/controllers/habit_deletion/confirmation.cpp
     backend/store/json_store.cpp
     backend/store/json_codecs.cpp
 )

@@ -16,7 +16,7 @@ ftxui::Element tab_item(const std::string& name, bool active) {
     } else {
         label |= ftxui::color(theme::muted());
     }
-    return label | ftxui::hcenter | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 12);
+    return label | ftxui::hcenter | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 8);
 }
 
 } // namespace
@@ -35,8 +35,10 @@ ftxui::Element render_tab_bar(const AppState& state) {
         tasks,
         separator(),
         tab_item(" Accomplishments ", state.tab == AppState::Tab::Accomplishments),
+        separator(),
+        tab_item("Goals", state.tab == AppState::Tab::Goals),
         filler(),
-        text("1/2/3 ") | color(theme::dim()),
+        text("1/2/3/4 ") | color(theme::dim()),
     });
 
     return bar | border;

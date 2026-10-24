@@ -3,14 +3,17 @@
 #include "backend/models/collection.hpp"
 #include "backend/models/habit.hpp"
 #include "backend/models/task.hpp"
+#include "backend/goals/model.hpp"
 
+#include <chrono>
+#include <cstddef>
 #include <string>
 #include <vector>
 
 namespace term_todos {
 
 struct AppState {
-    enum class Tab { Habits, Tasks, Accomplishments };
+    enum class Tab { Habits, Tasks, Accomplishments, Goals };
     enum class TaskView { Collections, Board };
 
     Tab tab = Tab::Tasks;
@@ -19,9 +22,18 @@ struct AppState {
     std::vector<TodoCollection> collections;
     std::vector<Task> tasks;
     std::vector<Habit> habits;
-    struct Accomplishment { std::string title; bool done = false; };
+    GoalMap goals;
+    struct Accomplishment {
+        std::string title;
+        bool done = false;
+        std::string completed_on;
+        bool archived_on(const std::string& today) const;
+    };
     std::vector<Accomplishment> accomplishments;
     int selected_accomplishment = 0;
+    int celebrating_accomplishment = -1;
+    std::chrono::steady_clock::time_point celebration_started;
+    std::vector<int> accomplishment_order(const std::string& today) const;
     void navigate_accomplishment(int delta);
     void add_accomplishment(const std::string& title);
     void rename_accomplishment(const std::string& title);
@@ -30,6 +42,7 @@ struct AppState {
 
     std::string data_path;
     bool dirty = false;
+    bool read_only_data = false;
 
     int selected_collection_id = 0;
     int selected_column = 0;
@@ -50,12 +63,18 @@ struct AppState {
         SetDue,
         Search,
         AddHabit,
+        DeleteHabit,
+        ConfirmDeleteHabit,
         RenameHabit,
+        EditHabitDescription,
         AddAccomplishment,
         RenameAccomplishment,
+        AddGoal, AddGoalChild, EditGoal, DescribeGoal, LinkGoalHabit, AddGoalHabit,
+        DeleteGoal, ConfirmDeleteGoal,
     };
     ModalKind modal = ModalKind::None;
     int edit_target_id = 0;
+    std::size_t habit_delete_history_count = 0;
 
     std::string collection_query;
     std::string search_query;
@@ -63,6 +82,8 @@ struct AppState {
     bool is_error_status = false;
     bool is_busy = false;
     bool show_help = false;
+    bool show_habit_description = false;
+    int habit_detail_line = 0;
 
     void set_status(const std::string& message);
     void set_error(const std::string& error_message);
@@ -103,7 +124,11 @@ struct AppState {
     void toggle_habit_today();
     void add_habit(const std::string& name);
     void delete_focused_habit();
+    const Habit* pending_habit_deletion() const;
+    void request_habit_deletion();
+    void confirm_habit_deletion(const std::string& confirmation);
     void rename_focused_habit(const std::string& name);
+    void set_habit_description(const std::string& description);
 };
 
 } // namespace term_todos

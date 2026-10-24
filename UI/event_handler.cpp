@@ -1,5 +1,6 @@
 #include "UI/event_handler.hpp"
 #include "UI/accomplishments/view.hpp"
+#include "UI/goals/events.hpp"
 
 #include "UI/events/habit_events.hpp"
 #include "UI/events/task_events.hpp"
@@ -58,10 +59,15 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
         state.set_tab(AppState::Tab::Accomplishments);
         return true;
     }
-    if (event == Event::Tab) {
-        state.set_tab(static_cast<AppState::Tab>((static_cast<int>(state.tab) + 1) % 3));
+    if (event == Event::Character('4')) {
+        state.set_tab(AppState::Tab::Goals);
         return true;
     }
+    if (event == Event::Tab) {
+        state.set_tab(static_cast<AppState::Tab>((static_cast<int>(state.tab) + 1) % 4));
+        return true;
+    }
+    if (state.tab == AppState::Tab::Goals) return handle_goal_event(state, event, input_buffer);
     if (state.tab == AppState::Tab::Accomplishments) return handle_accomplishment_event(state, event, input_buffer);
     if (state.tab == AppState::Tab::Tasks) {
         return handle_task_event(state, event, input_buffer);
@@ -71,6 +77,7 @@ bool handle_event(AppState& state, const Event& event, ScreenInteractive& screen
 
 void commit_modal(AppState& state, const std::string& buffer) {
     try {
+        if (commit_goal_modal(state, buffer)) return;
         switch (state.modal) {
             case AppState::ModalKind::AddAccomplishment:
                 state.add_accomplishment(buffer);
@@ -96,8 +103,15 @@ void commit_modal(AppState& state, const std::string& buffer) {
             case AppState::ModalKind::AddHabit:
                 state.add_habit(buffer);
                 break;
+            case AppState::ModalKind::DeleteHabit:
+            case AppState::ModalKind::ConfirmDeleteHabit:
+                state.confirm_habit_deletion(buffer);
+                return;
             case AppState::ModalKind::RenameHabit:
                 state.rename_focused_habit(buffer);
+                break;
+            case AppState::ModalKind::EditHabitDescription:
+                state.set_habit_description(buffer);
                 break;
             case AppState::ModalKind::AddTask:
                 state.add_task(buffer);
@@ -120,6 +134,7 @@ void commit_modal(AppState& state, const std::string& buffer) {
                 break;
             case AppState::ModalKind::None:
                 break;
+            default: break;
         }
     } catch (const std::exception& ex) {
         state.set_error(std::string("Action failed: ") + ex.what());

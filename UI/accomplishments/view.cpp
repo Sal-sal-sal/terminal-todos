@@ -1,29 +1,98 @@
 #include "UI/accomplishments/view.hpp"
+
 #include "UI/theme.hpp"
-#include <algorithm>
+#include "backend/models/date.hpp"
+
+#include <ftxui/component/animation.hpp>
+
+#include <chrono>
 
 namespace term_todos {
+
 using namespace ftxui;
 
-Element render_accomplishments(const AppState& state) {
-    const int done = std::count_if(state.accomplishments.begin(), state.accomplishments.end(),
-        [](const auto& item) { return item.done; });
-    Elements rows;
-    for (int i = 0; i < static_cast<int>(state.accomplishments.size()); ++i) {
-        const auto& item = state.accomplishments[i];
-        auto title = paragraph(item.title);
-        if (item.done) title = title | strikethrough | color(theme::muted());
-        else title = title | bold;
-        auto row = hbox({text(item.done ? "  ✓  " : "  ○  ") | color(Color::Yellow), title | flex});
-        if (i == state.selected_accomplishment) row = row | focus | inverted;
-        rows.push_back(row);
-        rows.push_back(text(""));
+namespace {
+
+Element accomplishment_row(const AppState& state, int index, const std::string& today) {
+    const auto& item = state.accomplishments[index];
+    const bool archived = item.archived_on(today);
+    const bool focused = index == state.selected_accomplishment;
+
+    std::string marker = item.done ? "  ✓  " : "  ○  ";
+    if (item.done && index == state.celebrating_accomplishment) {
+        const auto elapsed = std::chrono::steady_clock::now() - state.celebration_started;
+        if (elapsed < std::chrono::milliseconds(900)) {
+            const int frame = static_cast<int>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() / 150);
+            marker = frame % 2 == 0 ? "  ✦  " : "  ✧  ";
+            animation::RequestAnimationFrame();
+        }
     }
-    if (rows.empty()) rows.push_back(text("  Press n to add your first accomplishment.") | color(theme::muted()));
+
+    auto title = paragraph(item.title);
+    if (item.done) title = title | strikethrough | bold
+        | color(archived ? Color::Green : Color::GreenLight);
+    else title = title | bold;
+
+    auto row = hbox({
+        text(marker) | color(item.done ? Color::GreenLight : Color::Yellow),
+        title | flex,
+    });
+    if (focused) {
+        row = row | focus;
+        row = item.done ? row | bgcolor(Color::RGB(24, 60, 39)) : row | inverted;
+    }
+    return row;
+}
+
+void append_section(Elements& rows, const AppState& state,
+                    const std::vector<int>& indices, const std::string& today,
+                    const std::string& heading, const std::string& empty_text,
+                    Color heading_color) {
+    rows.push_back(hbox({
+        text("  " + heading) | bold | color(heading_color),
+        text("  " + std::to_string(indices.size())) | color(theme::dim()),
+    }));
+    rows.push_back(text(""));
+    if (indices.empty()) {
+        rows.push_back(text("  " + empty_text) | color(theme::muted()));
+    } else {
+        for (int index : indices) {
+            rows.push_back(accomplishment_row(state, index, today));
+            rows.push_back(text(""));
+        }
+    }
+}
+
+} // namespace
+
+Element render_accomplishments(const AppState& state) {
+    const std::string today = iso_today();
+    std::vector<int> current;
+    std::vector<int> archived;
+    int done_today = 0;
+    for (int index : state.accomplishment_order(today)) {
+        const auto& item = state.accomplishments[index];
+        if (item.archived_on(today)) archived.push_back(index);
+        else {
+            current.push_back(index);
+            if (item.done) ++done_today;
+        }
+    }
+
+    Elements rows;
+    append_section(rows, state, current, today, "ACCOMPLISHMENTS",
+                   "Press n to add an accomplishment.", Color::Yellow);
+    rows.push_back(separator());
+    rows.push_back(text(""));
+    append_section(rows, state, archived, today, "ACCOMPLISH COMPLETED",
+                   "Finished work moves here tomorrow.", Color::GreenLight);
+
     return vbox({
         text(""),
-        text("  ACCOMPLISHMENTS") | bold | color(Color::Yellow),
-        text("  " + std::to_string(done) + " / " + std::to_string(state.accomplishments.size()) + " completed") | color(theme::muted()),
+        text("  " + std::to_string(done_today) + " completed today  •  "
+             + std::to_string(archived.size()) + " from previous days")
+            | color(theme::muted()),
         text(""),
         vbox(rows) | vscroll_indicator | yframe | flex,
     });
@@ -46,4 +115,5 @@ bool handle_accomplishment_event(AppState& state, const Event& event, std::strin
     } else return false;
     return true;
 }
-}
+
+} // namespace term_todos

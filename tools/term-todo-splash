@@ -13,13 +13,13 @@ import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 from accomplishment_preview import render_accomplishments
+from habit_formula_preview import render_habit_name
 
 START = "# >>> term-todo habit splash >>>"
 END = "# <<< term-todo habit splash <<<"
 PALETTE = [(34, 37, 46), (14, 68, 41), (0, 109, 50), (38, 166, 65), (57, 211, 83)]
 PLAIN_CELLS = ["··", "░░", "▒▒", "▓▓", "██"]
 WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
-
 
 def data_path() -> Path:
     if value := os.environ.get("TERM_TODOS_DATA"):
@@ -78,6 +78,7 @@ def week_window(weeks: int, today: date) -> list[date]:
     current_monday = today - timedelta(days=today.weekday())
     first_monday = current_monday - timedelta(weeks=weeks - 1)
     return [first_monday + timedelta(weeks=index) for index in range(weeks)]
+
 def month_header(starts: list[date]) -> str:
     labels = [" "] * (len(starts) * 2)
     previous = -1
@@ -125,13 +126,13 @@ def render(weeks: int = 12) -> str:
     for habit in habits:
         done = is_done(habit, today)
         mark = paint("●" if done else "○", "32" if done else "90", enabled)
-        name = str(habit.get("name", "Unnamed habit"))
-        name = name[: max(8, width - 15)]
+        name = render_habit_name(
+            str(habit.get("name", "Unnamed habit")), enabled, max(8, width - 15)
+        )
         run = paint(f"{streak(habit, today)}d", "33", enabled)
         lines.append(f"  {mark} {name}  {run}")
     lines.extend(render_accomplishments(payload.get("accomplishments", []), enabled, width))
     return "\n".join(lines)
-
 
 def startup_block() -> str:
     return f'''{START}

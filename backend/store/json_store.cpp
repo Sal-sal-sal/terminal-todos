@@ -99,6 +99,7 @@ bool save_state(const std::string& path, const AppState& state) {
             out << root.dump(2);
             if (!out) return false;
             out.flush();
+            if (!out) return false;
         }
         return std::rename(tmp.c_str(), path.c_str()) == 0;
     } catch (...) {

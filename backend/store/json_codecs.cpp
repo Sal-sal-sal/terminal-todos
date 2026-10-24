@@ -1,6 +1,7 @@
 #include "backend/store/json_codecs.hpp"
 
 #include "backend/controllers/app_state.hpp"
+#include "backend/goals/codecs.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -84,6 +85,7 @@ void decode_habits(const nlohmann::json& root, AppState& state) {
         Habit habit;
         habit.id = item.value("id", 0);
         habit.name = item.value("name", "");
+        habit.description = item.value("description", "");
         if (item.contains("history") && item["history"].is_object()) {
             for (auto it = item["history"].begin(); it != item["history"].end(); ++it) {
                 if (it.value().is_boolean()) {
@@ -118,7 +120,9 @@ nlohmann::json encode_habit(const Habit& habit) {
     for (const auto& [date, done] : habit.history) {
         if (done) history[date] = true;
     }
-    return {{"id", habit.id}, {"name", habit.name}, {"history", history}};
+    nlohmann::json item = {{"id", habit.id}, {"name", habit.name}, {"history", history}};
+    if (!habit.description.empty()) item["description"] = habit.description;
+    return item;
 }
 
 } // namespace
@@ -128,11 +132,15 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
         decode_collections(root, state);
         decode_tasks(root, state);
         decode_habits(root, state);
+        if (!decode_goals(root, state.goals)) return false;
         if (root.contains("accomplishments")) {
             if (!root["accomplishments"].is_array()) return false;
             for (const auto& item : root["accomplishments"]) {
                 const std::string title = item.at("title").get<std::string>();
-                if (!title.empty()) state.accomplishments.push_back({title, item.value("done", false)});
+                if (title.empty()) continue;
+                const bool done = item.value("done", false);
+                const std::string completed_on = done ? item.value("completed_on", "") : "";
+                state.accomplishments.push_back({title, done, completed_on});
             }
         }
         return true;
@@ -143,7 +151,7 @@ bool decode_state_records(const nlohmann::json& root, AppState& state) {
 
 nlohmann::json encode_state_records(const AppState& state) {
     nlohmann::json root = {
-        {"schema_version", 5},
+        {"schema_version", 6},
         {"accomplishments", nlohmann::json::array()},
         {"collections", nlohmann::json::array()},
         {"tasks", nlohmann::json::array()},
@@ -155,8 +163,11 @@ nlohmann::json encode_state_records(const AppState& state) {
     for (const auto& task : state.tasks) root["tasks"].push_back(encode_task(task));
     for (const auto& habit : state.habits) root["habits"].push_back(encode_habit(habit));
     for (const auto& item : state.accomplishments) {
-        root["accomplishments"].push_back({{"title", item.title}, {"done", item.done}});
+        nlohmann::json record = {{"title", item.title}, {"done", item.done}};
+        if (item.done && !item.completed_on.empty()) record["completed_on"] = item.completed_on;
+        root["accomplishments"].push_back(std::move(record));
     }
+    encode_goals(root, state.goals);
     return root;
 }
 
